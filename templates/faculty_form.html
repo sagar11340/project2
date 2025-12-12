@@ -1,0 +1,49 @@
+
+{% extends "layout.html" %}
+{% block content %}
+<div class="header-row">
+  <div>
+    <h1 class="page-title">{{ 'Edit' if faculty else 'Add' }} Faculty</h1>
+    <p style="margin-top:-6px;color:var(--muted)">Fill faculty details.</p>
+  </div>
+  <div class="controls">
+    <a href="{{ url_for('faculty_list') }}" class="btn btn-secondary"><i class="fa fa-arrow-left"></i> Back</a>
+  </div>
+</div>
+
+<div class="card">
+  <form method="post">
+    <div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div>
+        <label class="form-label">Name</label>
+        <input type="text" name="name" value="{{ faculty.name if faculty else '' }}" class="form-control" required>
+      </div>
+
+      <div>
+        <label class="form-label">Phone</label>
+        <input type="text" name="phone" value="{{ faculty.phone if faculty else '' }}" class="form-control" required>
+      </div>
+
+      <div>
+        <label class="form-label">Email</label>
+        <input type="email" name="email" value="{{ faculty.email if faculty else '' }}" class="form-control">
+      </div>
+
+      <div>
+        <label class="form-label">Subject</label>
+        <input type="text" name="subject" value="{{ faculty.subject if faculty else '' }}" class="form-control" required>
+      </div>
+
+      <div style="grid-column:span 2;">
+        <label class="form-label">Address</label>
+        <textarea name="address" class="form-control">{{ faculty.address if faculty else '' }}</textarea>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;">
+      <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Save</button>
+      <a href="{{ url_for('faculty_list') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

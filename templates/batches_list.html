@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block content %}
+<h3>Batches</h3>
+<a href="{{ url_for('add_batch') }}" class="btn btn-success mb-2">+ Add Batch</a>
+<table class="table table-sm table-bordered">
+<thead><tr><th>Start Date</th><th>Title</th><th>Actions</th></tr></thead>
+<tbody>
+{% for b in batches %}
+<tr>
+  <td>{{ b.start_date }}</td>
+  <td>{{ b.title }}</td>
+  <td>
+    <a href="{{ url_for('edit_batch', bid=b._id) }}" class="btn btn-sm btn-primary">Edit</a>
+    <form method="post" action="{{ url_for('delete_batch', bid=b._id) }}" style="display:inline">
+      <button class="btn btn-sm btn-danger" onclick="return confirm('Delete?')">Delete</button>
+    </form>
+  </td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+{% endblock %}

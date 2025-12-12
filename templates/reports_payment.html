@@ -1,0 +1,242 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="report-center">
+  <h3 class="report-title">Payment Report</h3>
+
+  <!-- FILTER FORM -->
+  <div class="card report-form" id="filterCard">
+    <form method="post" class="row g-2 mb-3">
+      <div class="col-md-3">
+        <label class="form-label">From</label>
+        <input type="date" name="from_date" class="form-control" value="{{ request.form.from_date or '' }}">
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label">To</label>
+        <input type="date" name="to_date" class="form-control" value="{{ request.form.to_date or '' }}">
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label">Course</label>
+        <select name="course" class="form-select">
+          <option value="All">All</option>
+          {% for c in course_list %}
+            <option value="{{ c }}">{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label">Old/New</label>
+        <select name="payment_mode" class="form-select">
+          <option value="All">All</option>
+          <option value="new">New</option>
+          <option value="old">Old</option>
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <label class="form-label">Faculty</label>
+        <select name="faculty" class="form-select">
+          <option value="All">All</option>
+          {% for f in faculty_list %}
+            <option value="{{ f }}">{{ f }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-12 mt-2 d-flex gap-2 justify-content-end">
+        <button class="btn btn-primary">Search</button>
+        <a href="{{ url_for('payment_report') }}" class="btn btn-outline-secondary">Reset</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- RESULTS TABLE -->
+  <div class="card table-card" id="resultsCard">
+    {% if payments %}
+      <div class="table-wrap">
+        <table class="table report-table table-sm">
+
+          <thead>
+            <!-- PRINT HEADER ROW -->
+            <tr>
+              <th colspan="10" class="print-header-cell">
+                <div class="print-header">
+                  <img src="{{ url_for('static', filename='images/logo.png') }}" class="logo">
+                  <div class="print-title">
+                    <strong>PAYMENT COLLECTION FROM {{ request.form.from_date or '' }} TO {{ request.form.to_date or '' }}</strong><br>
+                    <small>Cash Submitted on {{ summary_date or '' }}</small>
+                  </div>
+                </div>
+              </th>
+            </tr>
+
+            <!-- COLUMN HEADERS -->
+            <tr>
+              <th>Sl</th>
+              <th>Receipt No</th>
+              <th>Student Name</th>
+              <th>Date</th>
+              <th>Course</th>
+              <th class="text-end">Amount</th>
+              <th>Gender</th>
+              <th>payment_mode</th>
+              <th>Faculty</th>
+              <th>Remark</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for p in payments %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ p.get('receipt_no') or '' }}</td>
+                <td>{{ p.get('student_name') or '' }}</td>
+                <td>
+                  {% if p.get('date') %}
+                    {% set d = p.get('date') %}
+                    {% if d.__class__.__name__ in ['datetime','date'] %}
+                      {{ d.strftime('%Y-%m-%d %H:%M') }}
+                    {% else %}
+                      {{ d }}
+                    {% endif %}
+                  {% else %}
+                    {{ p.get('created_at') or '' }}
+                  {% endif %}
+                </td>
+                <td>{{ p.get('course_name') or p.get('course') or '' }}</td>
+                <td class="text-end">{{ p.get('total') or p.get('amount') }}</td>
+                <td>{{ p.get('gender') }}</td>
+                <td>{{ p.get('payment_mode') }}</td>
+                <td>{{ p.get('faculty') }}</td>
+                <td>{{ p.get('remark') or '' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+  <tr>
+    <th colspan="5" class="text-end">Total Amount -</th>
+    <th class="text-end">{{ total_amount }}</th>
+    <th colspan="4"></th>
+  </tr>
+  <tr>
+    <td colspan="10" class="text-center">
+      From Receipt No-{{ first_receipt_no }} Up To Receipt No-{{ last_receipt_no }}
+    </td>
+  </tr>
+  <tr>
+    <td colspan="10" class="text-center">
+      All Rights Reserved 2025
+    </td>
+  </tr>
+</tfoot>
+        </table>
+      </div>
+    {% else %}
+      <p class="no-data">No payments found.</p>
+    {% endif %}
+  </div>
+</div>
+
+
+<!-- ========== CLEAN CSS ========== -->
+<style>
+  .report-center { max-width: 1200px; margin: 18px auto; padding: 0 12px; }
+  .report-title { margin-bottom: 12px; font-weight: 700; color: #1f2d3d; }
+  .card { background: #ffffff; border-radius: 10px; padding: 14px; border: 1px solid #e6e9ee;
+          box-shadow: 0 6px 20px rgba(16, 24, 40, 0.04); margin-bottom: 18px; }
+
+  .table-card { padding: 8px; overflow: visible; }
+  .table-wrap { width: 100%; overflow: visible; }
+
+  table.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+    table-layout: fixed;
+  }
+
+  table.report-table th, table.report-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #f0f2f5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  table.report-table thead tr {
+    background: linear-gradient(180deg,#f7fbff,#eef6ff);
+    color:#0b2a54;
+    font-weight:700;
+  }
+
+  .print-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo { height: 60px; }
+  .print-title { text-align: center; }
+
+  @media print {
+
+  /* SHOW ONLY REPORT */
+  body * { visibility: hidden !important; }
+  #resultsCard, #resultsCard * { visibility: visible !important; }
+  #filterCard { display: none !important; }
+
+  /* TABLE FIT TO FULL PAGE */
+  table.report-table {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* HEADER REPEAT */
+  table.report-table thead {
+    display: table-header-group !important;
+  }
+
+  /* REMOVE PAGE MARGINS */
+  @page {
+    size: A4 landscape;     /* IMPORTANT: full width */
+    margin: 0;              /* Zero margin – full page usage */
+  }
+
+  /* REMOVE BODY PADDING & CENTERING */
+  html, body {
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .report-center,
+  .card,
+  .table-card,
+  .table-wrap {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+  }
+
+  /* TABLE CELLS – MAKE IT CLEAN */
+  table.report-table th,
+  table.report-table td {
+    font-size: 11px !important;
+    padding: 4px 6px !important;
+    white-space: normal !important;
+  }
+
+  tr { page-break-inside: avoid; }
+}
+table.report-table tfoot tr td,
+table.report-table tfoot tr th {
+  font-weight: 600;
+  padding-top: 6px;
+}
+
+</style>
+
+{% endblock %}

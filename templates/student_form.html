@@ -1,0 +1,204 @@
+{% extends "layout.html" %}
+{% block content %}
+<!-- MAIN FORM (single form) -->
+<form method="post"
+      enctype="multipart/form-data"
+      class="form"
+      id="studentForm"
+      action="{{ url_for('add_student') if not student else url_for('edit_student', sid=student._id) }}">
+  <!-- large search-like header field area (optional use)
+  <div style="margin-bottom:14px;">
+    <input type="text" class="form-control" placeholder="" style="height:46px;border-radius:10px;background:#fafbff;border:1px solid #eef2ff;">
+  </div> -->
+
+  <!-- form-grid (2 columns) -->
+  <div class="form-grid">
+    <!-- Photo upload + preview -->
+    <div>
+      <label class="form-label">Photo</label>
+      <input type="file" name="photo" id="photoInput" class="form-control" accept="image/*">
+      <div style="margin-top:8px;">
+        <img id="previewImage"
+             src="{% if student and student.photo %}{{ url_for('static', filename='uploads/' ~ student.photo) }}{% else %}{{ url_for('static', filename='placeholder.png') }}{% endif %}"
+             alt="preview"
+             style="max-width:140px; border-radius:8px; display:block;">
+      </div>
+    </div>
+
+    <!-- First Name -->
+    <div>
+      <label class="form-label">First Name</label>
+      <input type="text" name="first_name" required class="form-control large"
+             value="{{ student.first_name if student else '' }}">
+    </div>
+
+    <div>
+      <label class="form-label">Father Name</label>
+      <input type="text" name="father_name" class="form-control large"
+             value="{{ student.father_name if student else '' }}">
+    </div>
+
+    <div>
+      <label class="form-label">Last Name</label>
+      <input type="text" name="last_name" class="form-control large"
+             value="{{ student.last_name if student else '' }}">
+    </div>
+
+    <div>
+      <label class="form-label">Date of Birth</label>
+      <input type="date" name="dob" class="form-control large"
+             value="{{ student.dob if student else '' }}">
+    </div>
+
+    <div>
+      <label class="form-label">Phone</label>
+      <input type="text" name="phone" class="form-control large"
+             value="{{ student.phone if student else '' }}" placeholder="e.g. 9876543210">
+    </div>
+
+    <div>
+      <label class="form-label">Parents Phone</label>
+      <input type="text" name="parents_phone" class="form-control large"
+             value="{{ student.parents_phone if student else '' }}">
+    </div>
+
+    <!-- Address (span full width) -->
+    <div style="grid-column: 1 / span 2;">
+      <label class="form-label">Address</label>
+      <textarea name="address" class="form-control large" rows="2"
+                placeholder="House no, street, area, city - pincode">{{ student.address if student else '' }}</textarea>
+    </div>
+
+    <div>
+      <label class="form-label">Aadhaar No</label>
+      <input type="text" name="aadhar" class="form-control large"
+             value="{{ student.aadhar if student else '' }}" placeholder="Optional">
+    </div>
+     <div>
+  <label class="form-label">Email ID</label>
+  <input type="email" name="email" class="form-control large"
+         value="{{ student.email if student else '' }}" placeholder="example@gmail.com">
+</div>
+
+    <div>
+      <label class="form-label">Gender</label>
+      <select name="gender" class="form-select large">
+        <option value="Male" {% if student and student.gender=='Male' %}selected{% endif %}>Male</option>
+        <option value="Female" {% if student and student.gender=='Female' %}selected{% endif %}>Female</option>
+        <option value="Other" {% if student and student.gender=='Other' %}selected{% endif %}>Other</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="form-label">Batch</label>
+      <select name="batch_id" class="form-select large">
+        <option value="">Select batch</option>
+        {% for b in batches %}
+          <option value="{{ b._id }}"
+            {% if student and (student.batch_id|string == b._id|string) %}selected{% endif %}>
+            {{ b.title or b.name or ('Batch ' ~ (b._id|string) ) }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="form-label">Course</label>
+      <select name="course_id" class="form-select large">
+        <option value="">Select course</option>
+        {% for c in courses %}
+          <option value="{{ c._id }}"
+            {% if student and (student.course_id|string == c._id|string) %}selected{% endif %}>
+            {{ c.name or c.title or ('Course ' ~ (c._id|string)) }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+<div>
+  <label class="form-label">Faculty</label>
+
+  <!-- dropdown (preferred) -->
+  <select name="faculty_id" class="form-select large">
+    <option value="">Select faculty</option>
+    {% for f in faculties %}
+      <option value="{{ f._id }}" {% if student and (student.faculty_id|string == f._id|string or student.faculty == f.name) %}selected{% endif %}>
+        {{ f.name }}
+      </option>
+    {% endfor %}
+  </select>
+
+  <!-- optional fallback free-text (keeps compatibility with older entries) -->
+  <input type="text" name="faculty" class="form-control mt-2" placeholder="Or type faculty name" value="{{ student.faculty if student else '' }}">
+</div>
+
+
+    <div>
+      <label class="form-label">Date of Admission</label>
+      <input type="date" name="admission_date" class="form-control large" value="{{ student.admission_date if student else '' }}">
+    </div>
+
+    <div>
+      <label class="form-label">Payment Status</label>
+      <select name="payment_status" class="form-select large">
+        {% for opt in ['paying','free','10 percent','20 percent','25 percent','50 percent','75 percent'] %}
+          <option value="{{ opt }}" {% if student and student.payment_status==opt %}selected{% endif %}>{{ opt }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="form-label">Reference</label>
+      <input type="text" name="reference" class="form-control large" value="{{ student.reference if student else '' }}">
+    </div>
+
+    <div>
+      <label class="form-label">Qualification</label>
+      <input type="text" name="qualification" class="form-control large" value="{{ student.qualification if student else '' }}" placeholder="qualification">
+    </div>
+
+    <div>
+      <label class="form-label">Blood Group</label>
+      <input type="text" name="blood_group" class="form-control large" value="{{ student.blood_group if student else '' }}" placeholder="Optional">
+    </div>
+
+   <div>
+  <label class="form-label">Form No</label>
+  <input type="text" name="form_no" 
+         class="form-control large"
+         value="{{ student.form_no if student else '' }}"
+         placeholder="Enter Form No (required)">
+</div>
+
+
+  <!-- action buttons -->
+  <div style="display:flex; gap:12px; margin-top:18px; align-items:center;">
+    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Save</button>
+    <a href="{{ url_for('students_list') }}" class="btn btn-secondary"><i class="fa-solid fa-times"></i> Cancel</a>
+  </div>
+</form>
+
+<!-- DELETE form moved outside main form (valid HTML) -->
+{% if student %}
+  <form method="post" action="{{ url_for('delete_student', sid=student._id) }}" style="display:inline; margin-top:10px;">
+    <button class="btn btn-danger" onclick="return confirm('Delete this student?')"><i class="fa-solid fa-trash"></i> Delete</button>
+  </form>
+{% endif %}
+
+<script>
+  const photoInput = document.getElementById('photoInput');
+  const previewImage = document.getElementById('previewImage');
+
+  if (photoInput && previewImage) {
+    photoInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        previewImage.src = ev.target.result;
+      }
+      reader.readAsDataURL(file);
+    });
+  }
+</script>
+{% endblock %}

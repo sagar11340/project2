@@ -1,0 +1,213 @@
+{% set full_width = true %}
+
+{% extends "layout.html" %}
+{% block content %}
+<style>
+  /* Full-page background */
+  body.login-bg {
+    background-image: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('/static/images/bg.jpg');
+    background-size: cover;
+    background-position: center;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .login-card {
+    backdrop-filter: blur(6px) saturate(120%);
+    background: rgba(255,255,255,0.92);
+    border-radius: 14px;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+    overflow: hidden;
+    max-width: 960px;
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+    height: 540px;
+  }
+
+  .login-left {
+    padding: 36px;
+    min-width: 360px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .login-right {
+    background: linear-gradient(180deg, rgba(2,42,92,0.92), rgba(8,122,255,0.92));
+    color: #fff;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-width: 320px;
+  }
+
+  .brand-logo {
+    width: 86px;
+    height: 86px;
+    object-fit: contain;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    padding: 8px;
+    box-shadow: 0 6px 18px rgba(2,12,35,0.06);
+  }
+
+  .d-flex .mb-3 h4 { line-height: 1.05; }
+
+  .user-avatars { display: flex; gap: 12px; margin-top: 18px; }
+  .user-avatars img { width: 68px; height: 68px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.12); object-fit: cover; box-shadow: 0 6px 20px rgba(3,30,80,0.18); }
+
+  .login-title { font-weight: 700; margin-bottom: 6px; font-size: 1.2rem; }
+  .small-desc { opacity: 0.9; font-size: 0.95rem; }
+
+  .form-control:focus { box-shadow: none; border-color: #0d6efd; }
+  .input-group .btn { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+
+  .logo-footer { font-size: 12px; color: rgba(0,0,0,0.6); text-align: center; margin-top: 12px; }
+
+  /* Buttons in right panel */
+  .login-right .btn { min-width: 100px; }
+
+  /* subtle watermark on right panel */
+  .login-right::after {
+    content: "";
+    background-image: url('/static/images/watermark.png');
+    background-size: 120px 120px;
+    opacity: 0.06;
+    position: absolute;
+    right: 60px;
+    top: 40px;
+    width: 120px;
+    height: 120px;
+    pointer-events: none;
+  }
+
+  @media (max-width: 992px) {
+
+    /* The whole login card becomes vertical */
+    .login-card {
+        flex-direction: column !important;
+        width: 95% !important;
+        height: auto !important;
+        margin: 12px auto;
+    }
+
+    /* Left side (login form) full width */
+    .login-left {
+        width: 100% !important;
+        padding: 22px !important;
+        text-align: center;
+    }
+
+    /* Right side */
+    .login-right {
+        width: 100% !important;
+        padding: 28px 18px !important;
+        border-radius: 0 0 14px 14px !important;
+        text-align: center;
+    }
+
+    .login-right h3 {
+        font-size: 1.4rem;
+    }
+
+    .user-avatars img { width: 56px; height: 56px; }
+    .brand-logo { width: 72px; height: 72px; }
+
+    /* Inputs should be larger on mobile */
+    .form-control {
+        font-size: 1rem;
+        padding: 10px 14px;
+    }
+
+    button.btn-primary { font-size: 1.05rem; padding: 11px; }
+
+    .d-flex .mb-3 { justify-content: center; }
+  }
+
+  /* small tweak for very small screens */
+  @media (max-width: 420px) {
+    .login-left { padding: 18px !important; }
+    .user-avatars img { width: 46px; height: 46px; }
+  }
+</style>
+
+<body class="login-bg">
+  <div class="card login-card position-relative d-flex flex-row">
+    <div class="login-left">
+      <div class="d-flex align-items-center mb-3">
+        <img src="/static/images/logo.png" alt="logo" class="brand-logo me-3">
+        <div>
+          <h4 class="mb-0">Swami Ranganathananda Institute</h4>
+          <div class="text-muted">Language &amp; Culture | RKM Delhi</div>
+        </div>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <h5 class="login-title">Welcome back</h5>
+      <p class="small-desc">Sign in to manage students, batches and payments.</p>
+
+      <form method="post" class="mt-3">
+        <div class="mb-3 text-start">
+          <label class="form-label">Username</label>
+          <input name="username" class="form-control" placeholder="Enter username" required value="{{ request.form.username or '' }}">
+        </div>
+        <div class="mb-3 text-start">
+          <label class="form-label">Password</label>
+          <div class="input-group">
+            <input id="password" name="password" type="password" class="form-control" placeholder="Enter password" required>
+            <button type="button" class="btn btn-outline-secondary" id="togglePwd">Show</button>
+          </div>
+        </div>
+        <button class="btn btn-primary w-100 mb-2">Login</button>
+        <div class="d-flex justify-content-between align-items-center mt-2">
+          <small class="text-muted">Forgot password? <a href="#">Recover</a></small>
+          <small class="text-muted">Need help? <a href="#">Contact</a></small>
+        </div>
+      </form>
+
+      <div class="logo-footer">
+        © {{ current_year or 2025 }} Ramakrishna Mission · Swami Ranganathananda Institute
+      </div>
+    </div>
+
+    <div class="login-right position-relative">
+      <h3 class="mb-1">Hello, Friend!</h3>
+      <p class="small-desc text-white-50 text-center">We teach Spanish • French • English — Join our classes or manage them here.</p>
+
+      <div class="user-avatars">
+        <img src="/static/images/admin.png" alt="admin photo">
+        <img src="/static/images/user.png" alt="user photo">
+      </div>
+
+      <div class="mt-4 text-center">
+        <a href="#" class="btn btn-light btn-sm">Admissions</a>
+        <a href="#" class="btn btn-outline-light btn-sm ms-2">Courses</a>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('togglePwd')?.addEventListener('click', function(){
+      const p = document.getElementById('password');
+      if (!p) return;
+      if (p.type === 'password') { p.type = 'text'; this.innerText = 'Hide'; }
+      else { p.type = 'password'; this.innerText = 'Show'; }
+    });
+  </script>
+</body>
+
+{% endblock %}

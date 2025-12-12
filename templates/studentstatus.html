@@ -1,0 +1,225 @@
+{% extends "layout.html" %}
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  .photo-thumb{width:70px;height:70px;object-fit:cover;border-radius:6px;}
+  .attendance-bar{height:14px;border-radius:6px;}
+  .due-badge{font-weight:600;}
+  @media print {
+    body * { visibility: hidden; }
+    #certificate, #certificate * { visibility: visible; }
+    #certificate { position: absolute; left:0; top:0; width:100%; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>Student Status</h3>
+    <div class="d-flex gap-2">
+      <input id="searchInput" class="form-control" placeholder="Search by name, form no or mobile" style="min-width:260px;">
+      <a class="btn btn-sm btn-success" href="{{ url_for('app.index') }}">Refresh</a>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-body p-2">
+      <div class="row g-2">
+        <div class="col-md-3">
+          <label class="form-label">Filter by Course</label>
+          <select id="courseFilter" class="form-select"><option value="">All Courses</option></select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Filter by Faculty</label>
+          <select id="facultyFilter" class="form-select"><option value="">All Faculty</option></select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Show Installment Due</label>
+          <select id="dueFilter" class="form-select">
+            <option value="all">All</option>
+            <option value="due">Only Due</option>
+            <option value="paid">Only Paid</option>
+          </select>
+        </div>
+        <div class="col-md-3 text-end">
+          <button id="exportCsv" class="btn btn-outline-primary">Export CSV</button>
+          <button id="printList" class="btn btn-outline-secondary">Print</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table id="studentsTable" class="table table-striped table-bordered align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Photo</th><th>Form No</th><th>Name</th><th>Father's Name</th><th>Faculty</th><th>Course</th><th>Mobile</th><th>Admission</th><th>Completion</th><th>Attendance</th><th>Installment</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyStudents"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Printable certificate area (hidden except for print) -->
+<div id="certificate" style="display:none; background:white; padding:20px; max-width:210mm; margin:10px auto;">
+  <div style="border:10px solid #f1c40f; padding:18px; min-height:275mm; box-sizing:border-box;">
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <h4>RAMAKRISHNA MISSION, NEW DELHI</h4>
+        <h6>Swami Ranganathananda Institute of Languages and Culture</h6>
+      </div>
+      <div style="text-align:center">
+        <img id="certPhoto" src="{{ url_for('static', filename='uploads/default.png') }}" alt="photo" style="width:120px;height:120px;object-fit:cover;border:1px solid #ddd;">
+        <div style="font-size:12px;margin-top:6px;">(Student Photo)</div>
+      </div>
+    </div>
+
+    <h2 style="text-align:center;margin-top:18px;">Certificate</h2>
+
+    <p id="certText" style="font-size:16px;text-align:center;margin-top:24px;">
+      This is to certify that <strong id="certName"></strong> (S/O / D/O <span id="certFather"></span>) has successfully completed the course <strong id="certCourse"></strong> of <span id="certHours">--</span> hours at our institute.
+    </p>
+
+    <p style="text-align:center;margin-top:40px;">Date of Admission: <span id="certAdmission"></span> &nbsp;&nbsp; Date of Completion: <span id="certCompletion"></span></p>
+
+    <div style="margin-top:120px;display:flex;justify-content:space-between;">
+      <div>_____________________<br>Director / Faculty</div>
+      <div>_____________________<br>Secretary</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // URL endpoints
+  const API_LIST = "/api/students";
+  const CERT_BASE = "/generate_certificate/"; // server supports ObjectId or formNo fallback
+
+  // state
+  let students = [];
+
+  // util: format date
+  function fmtDate(d){ if(!d) return ''; try { return new Date(d).toLocaleDateString(); } catch(e){ return d; } }
+
+  // fetch students from server
+  async function fetchStudents(){
+    const res = await fetch(API_LIST);
+    if(!res.ok) { alert('Failed to load students'); return; }
+    students = await res.json();
+    // ensure _id and fields exist
+    students.forEach(s => {
+      s._id = s._id || s._id_str || s.id || s._id; // fallback if different
+      s.photo = s.photo || '{{ url_for("static", filename="uploads/default.png") }}';
+      s.totalFee = s.totalFee || 0;
+      s.paid = s.paid || 0;
+      s.attendance = s.attendance || {};
+      s.attendancePercent = s.attendancePercent || (function(){ const a = s.attendance; const days = Object.keys(a).length; if(!days) return 0; return Math.round(Object.values(a).filter(Boolean).length*100/days); })();
+    });
+    populateFilters();
+    renderTable();
+  }
+
+  function populateFilters(){
+    const courses = [...new Set(students.map(s=>s.course).filter(Boolean))].sort();
+    const faculties = [...new Set(students.map(s=>s.faculty).filter(Boolean))].sort();
+    const cf = document.getElementById('courseFilter'), ff = document.getElementById('facultyFilter');
+    cf.querySelectorAll('option:not([value=""])').forEach(n=>n.remove());
+    ff.querySelectorAll('option:not([value=""])').forEach(n=>n.remove());
+    courses.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; cf.appendChild(o); });
+    faculties.forEach(f=>{ const o=document.createElement('option'); o.value=f; o.textContent=f; ff.appendChild(o); });
+  }
+
+  // render table with filters
+  function renderTable(){
+    const tbody = document.getElementById('tbodyStudents'); tbody.innerHTML = '';
+    const search = document.getElementById('searchInput').value.trim().toLowerCase();
+    const courseFilter = document.getElementById('courseFilter').value;
+    const facultyFilter = document.getElementById('facultyFilter').value;
+    const dueFilter = document.getElementById('dueFilter').value;
+
+    students.forEach(s=>{
+      if(search){
+        const hay = ((s.name||'') + ' ' + (s.formNo||'') + ' ' + (s.mobile||'')).toLowerCase();
+        if(!hay.includes(search)) return;
+      }
+      if(courseFilter && s.course !== courseFilter) return;
+      if(facultyFilter && s.faculty !== facultyFilter) return;
+      const dueAmt = (s.totalFee || 0) - (s.paid || 0);
+      const dueState = dueAmt > 0 ? 'due' : 'paid';
+      if(dueFilter !== 'all' && dueFilter !== dueState) return;
+
+      const tr = document.createElement('tr');
+
+      // photo - make absolute URL if stored as filename
+      let photoSrc = s.photo || '{{ url_for("static", filename="uploads/default.png") }}';
+      // if photo is relative (like "uploads/foo.jpg"), convert using static root
+      if(!photoSrc.startsWith('http') && !photoSrc.startsWith('/')) {
+        photoSrc = "{{ url_for('static', filename='') }}"+photoSrc;
+      }
+
+      tr.innerHTML = `
+        <td><img class="photo-thumb" src="${photoSrc}" onerror="this.src='{{ url_for("static", filename="uploads/default.png") }}'"></td>
+        <td>${s.formNo || ''}</td>
+        <td>${s.name || ''}</td>
+        <td>${s.father || ''}</td>
+        <td>${s.faculty || ''}</td>
+        <td>${s.course || ''}</td>
+        <td>${s.mobile || ''}</td>
+        <td>${fmtDate(s.admission)}</td>
+        <td>${fmtDate(s.completion)}</td>
+        <td style="min-width:140px;">
+          <div class="progress"><div class="progress-bar attendance-bar" style="width:${s.attendancePercent || 0}%">${s.attendancePercent || 0}%</div></div>
+        </td>
+        <td class="installment-cell"></td>
+        <td>
+          <button class="btn btn-sm btn-primary" onclick="openCertificate('${s._id || s.formNo}')">Certificate</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="showDetails('${s._id || s.formNo}')">Details</button>
+        </td>
+      `;
+      // set installment cell separately (to avoid template quoting issues)
+      const dueTd = tr.querySelector('.installment-cell');
+      if(dueAmt > 0) dueTd.innerHTML = `<span class="badge bg-danger due-badge">Due: ₹${dueAmt}</span>`;
+      else dueTd.innerHTML = `<span class="badge bg-success due-badge">Paid</span>`;
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  // show details small dialog
+  function showDetails(id){
+    const s = students.find(x => (x._id == id || x.formNo == id));
+    if(!s) return alert('Not found');
+    alert(`Name: ${s.name}\nForm No: ${s.formNo}\nCourse: ${s.course}\nInstallment Due: ₹${(s.totalFee||0)-(s.paid||0)}`);
+  }
+
+  // open certificate - uses server endpoint which accepts ObjectId or formNo fallback
+  function openCertificate(id){
+    // open in new tab; server will render PDF or HTML
+    const url = CERT_BASE + encodeURIComponent(id);
+    window.open(url, '_blank');
+  }
+
+  // export CSV (client-side)
+  function exportCsv(){
+    const headers = ['FormNo','Name','Father','Faculty','Course','Mobile','Admission','Completion','AttendancePercent','TotalFee','Paid'];
+    const rows = students.map(s => [
+      s.formNo, s.name, s.father, s.faculty, s.course, s.mobile, s.admission || '', s.completion || '', s.attendancePercent || 0, s.totalFee || 0, s.paid || 0
+    ]);
+    const csv = [headers.join(','), ...rows.map(r=>r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(','))].join('\n');
+    const blob = new Blob([csv], {type:'text/csv'}); const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'students.csv'; a.click(); URL.revokeObjectURL(a.href);
+  }
+
+  // events
+  document.getElementById('searchInput').addEventListener('input', renderTable);
+  document.getElementById('courseFilter').addEventListener('change', renderTable);
+  document.getElementById('facultyFilter').addEventListener('change', renderTable);
+  document.getElementById('dueFilter').addEventListener('change', renderTable);
+  document.getElementById('exportCsv').addEventListener('click', exportCsv);
+  document.getElementById('printList').addEventListener('click', ()=> window.print());
+
+  // initial load
+  fetchStudents();
+</script>
+{% endblock %}

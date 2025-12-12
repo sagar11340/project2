@@ -1,0 +1,172 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container mt-4">
+  <div class="card shadow-sm p-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="mb-0">Attendance Register</h4>
+
+      <div class="d-flex gap-2">
+        <input type="date" id="att_date" class="form-control form-control-sm" value="{{ today }}" />
+
+        <!-- <select id="batch_select" class="form-select form-select-sm">
+          <option value="">Select Batch</option>
+          {% for b in batches %}
+            <option value="{{ b._id }}" {% if b._id == selected_batch %}selected{% endif %}>
+              {{ b.name }}
+            </option>
+          {% endfor %}
+        </select> -->
+
+        <select id="batch_select" class="form-select">
+  <option value="">Select Batch</option>
+  {% for b in batches %}
+    <option value="{{ b._id }}" {% if b._id == selected_batch %}selected{% endif %}>{{ b.display_name }}</option>
+  {% endfor %}
+</select>
+
+
+        <button id="loadBtn" class="btn btn-primary btn-sm">Load</button>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mb-3">
+      <button id="markAllPresent" class="btn btn-success btn-sm">Mark All Present</button>
+      <button id="markAllAbsent" class="btn btn-danger btn-sm">Mark All Absent</button>
+      <button id="markAllLeave" class="btn btn-warning btn-sm">Mark All Leave</button>
+      <button id="printBtn" class="btn btn-secondary btn-sm ms-auto">Print</button>
+    </div>
+
+    <form method="post" action="{{ url_for('save_attendance') }}" id="attendanceForm">
+      <input type="hidden" name="date" id="hidden_date" value="{{ today }}">
+      <input type="hidden" name="batch_id" id="hidden_batch" value="{{ selected_batch }}">
+
+      <div class="table-responsive">
+        <table class="table table-striped table-bordered table-sm align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th>#</th>
+              <th>Photo</th>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Admission No</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in students %}
+            <tr data-student-id="{{ s._id }}">
+              <td>{{ loop.index }}</td>
+
+              <td>
+                {% if s.photo %}
+                <img src="{{ url_for('static', filename='uploads/' + s.photo) }}" height="40" class="rounded">
+                {% else %}
+                <span class="text-muted small">No Photo</span>
+                {% endif %}
+              </td>
+
+              <td>{{ s.first_name }} {{ s.last_name }}</td>
+              <td>{{ s.phone }}</td>
+              <td>{{ s.form_no }}</td>
+
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <input type="hidden" name="student_ids" value="{{ s._id }}">
+                  <input type="hidden" name="status_{{ s._id }}" class="status-input" value="{{ s.status }}">
+
+                  <button type="button" class="btn btn-outline-success status-btn" data-status="present">P</button>
+                  <button type="button" class="btn btn-outline-danger status-btn" data-status="absent">A</button>
+                  <button type="button" class="btn btn-outline-warning status-btn" data-status="leave">L</button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+
+            {% if students|length == 0 %}
+            <tr>
+              <td colspan="6" class="text-center text-muted">No students found.</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-2 d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Save Attendance</button>
+        <a href="#" id="exportCsv" class="btn btn-outline-secondary">Export CSV</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- <div class="mt-2 d-flex gap-2">
+  <button type="submit" class="btn btn-primary">Save Attendance</button>
+  <a href="#" id="exportCsv" class="btn btn-outline-secondary">Export CSV</a>
+  <a href="{{ url_for('attendance_history') }}" class="btn btn-outline-info">Attendance History</a>
+</div>
+ -->
+
+<style>
+@media print {
+  header, .navbar, .btn, .form-control, .form-select { display: none !important; }
+  table { font-size: 12px; }
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+  const dateInput = document.getElementById("att_date");
+  const batchSelect = document.getElementById("batch_select");
+  const hiddenDate = document.getElementById("hidden_date");
+  const hiddenBatch = document.getElementById("hidden_batch");
+
+  dateInput.onchange = () => hiddenDate.value = dateInput.value;
+  batchSelect.onchange = () => hiddenBatch.value = batchSelect.value;
+
+  // Load button
+  document.getElementById("loadBtn").onclick = () => {
+    let url = new URL(window.location.href);
+    url.searchParams.set("date", dateInput.value);
+    if (batchSelect.value) url.searchParams.set("batch", batchSelect.value);
+    window.location = url.toString();
+  };
+
+  // Status buttons
+  document.querySelectorAll(".status-btn").forEach(btn => {
+    btn.onclick = function() {
+      let row = this.closest("tr");
+      row.querySelectorAll(".status-btn").forEach(b => b.classList.remove("active"));
+      this.classList.add("active");
+      row.querySelector(".status-input").value = this.dataset.status;
+    };
+  });
+
+  // Mark all functions
+  function setAll(status) {
+    document.querySelectorAll("tr[data-student-id]").forEach(row => {
+      row.querySelector(".status-input").value = status;
+      row.querySelectorAll(".status-btn").forEach(btn => btn.classList.remove("active"));
+      row.querySelector(`.status-btn[data-status='${status}']`).classList.add("active");
+    });
+  }
+
+  document.getElementById("markAllPresent").onclick = () => setAll("present");
+  document.getElementById("markAllAbsent").onclick = () => setAll("absent");
+  document.getElementById("markAllLeave").onclick = () => setAll("leave");
+
+  document.getElementById("printBtn").onclick = () => window.print();
+
+  // CSV Export
+  document.getElementById("exportCsv").onclick = e => {
+    e.preventDefault();
+    let url = "{{ url_for('attendance_export_csv') }}?date=" + dateInput.value +
+              "&batch=" + batchSelect.value;
+    window.open(url, "_blank");
+  };
+
+});
+</script>
+
+{% endblock %}

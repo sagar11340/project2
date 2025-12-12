@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="header-row">
+  <h1 class="page-title">Fee Payments</h1>
+</div>
+
+<div class="search-wrap">
+  <form method="get" class="d-flex" style="width:100%;">
+    <div class="search-input" style="flex:1;">
+      <input type="text" name="q" value="{{ q }}" placeholder="Search by name or receipt..." />
+    </div>
+    <button class="btn-search">Search</button>
+  </form>
+</div>
+
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Student</th>
+        <th>Course</th>
+        <th>Fee</th>
+        <th>Paid</th>
+        <th>Balance</th>
+        <th>Installments</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if students %}
+        {% for s in students %}
+        <tr>
+          <td>{{ s.first_name }} {% if s.last_name %} {{ s.last_name }}{% endif %}<br><small class="text-muted">{{ s.phone or '' }}</small></td>
+          <td>{{ s.course_name or '' }}</td>
+          <td>{{ s.course_fee or 0 }}</td>
+          <td>{{ s.paid or 0 }}</td>
+          <td>
+            {% if s.balance <= 0 %}
+              <span class="badge success">Paid</span>
+            {% else %}
+              <span class="badge danger">{{ s.balance }}</span>
+            {% endif %}
+          </td>
+          <td>{{ s.installments }}</td>
+          <td style="white-space:nowrap">
+            <a class="btn btn-sm btn-primary" href="{{ url_for('add_payment', student_id=s._id) }}"><i class="fa-solid fa-money-bill-wave"></i> Pay</a>
+            <a class="btn btn-sm btn-secondary" href="{{ url_for('payment_details', student_id=s._id) }}"><i class="fa-solid fa-eye"></i> View</a>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="7" class="no-data">No students found.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

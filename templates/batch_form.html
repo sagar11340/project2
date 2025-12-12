@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+{% block content %}
+<h3>{{ 'Edit' if batch else 'Add' }} Batch</h3>
+<form method="post" class="col-md-6">
+  <label>Batch Title</label>
+  <input type="text" name="title" class="form-control mb-2" value="{{ batch.title if batch else '' }}" required>
+  <label>Batch Starting Date</label>
+  <input type="date" name="start_date" class="form-control mb-3" value="{{ batch.start_date if batch else '' }}" required>
+  <button class="btn btn-primary">Save</button>
+</form>
+{% endblock %}

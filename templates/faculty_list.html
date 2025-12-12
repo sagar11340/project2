@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="header-row">
+  <div>
+    <h1 class="page-title">Faculty List</h1>
+    <p style="margin-top:-6px;color:var(--muted)">View and manage all faculty members.</p>
+  </div>
+  <div class="controls">
+    <a href="{{ url_for('faculty_form') }}" class="btn btn-primary"><i class="fa fa-plus"></i> Add Faculty</a>
+  </div>
+</div>
+
+<div class="card">
+  {% if faculties %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Name</th>
+        <th>Phone</th>
+        <th>Email</th>
+        <th>Subject</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in faculties %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ f.name }}</td>
+        <td>{{ f.phone }}</td>
+        <td>{{ f.email }}</td>
+        <td>{{ f.subject }}</td>
+        <td>
+          <a href="{{ url_for('edit_faculty', id=f._id) }}" class="badge primary">Edit</a>
+          <a href="{{ url_for('delete_faculty', id=f._id) }}" class="badge danger" onclick="return confirm('Delete this faculty?')">Delete</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="no-data">No faculty records found.</div>
+  {% endif %}
+</div>
+{% endblock %}

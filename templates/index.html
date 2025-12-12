@@ -1,0 +1,208 @@
+{% extends "layout.html" %}
+{% block content %}
+<!-- Dashboard Header -->
+<div class="header-row" style="margin-bottom:18px;">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="text-muted" style="margin-top:-8px;">Quick overview of students, batches & gender distribution</p>
+  </div>
+  <div class="controls">
+    <a href="{{ url_for('add_student') }}" class="btn btn-success"><i class="fa-solid fa-user-plus"></i> Add Student</a>
+    <a href="{{ url_for('add_batch') }}" class="btn btn-primary"><i class="fa-solid fa-layer-plus"></i> Add Batch</a>
+  </div>
+</div>
+
+<!-- Stats cards -->
+<div class="card" style="padding:12px 14px; margin-bottom:18px;">
+  <div style="display:flex; gap:14px; flex-wrap:wrap;">
+    <!-- Students -->
+    <div style="flex:1 1 220px;">
+      <div class="stats-card" style="padding:18px; border-radius:12px; background: linear-gradient(90deg,#0b66ff,#1e3a8a);">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="font-size:34px;padding:12px;background:rgba(255,255,255,0.12); border-radius:10px;">
+            <i class="fa-solid fa-user-graduate" style="font-size:20px;color:#fff"></i>
+          </div>
+          <div>
+            <div style="font-size:14px;opacity:0.9">Total Students</div>
+            <div style="font-weight:700;font-size:22px;margin-top:4px;">{{ student_count or 0 }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Batches -->
+    <div style="flex:1 1 220px;">
+      <div class="stats-card" style="padding:18px; border-radius:12px; background: linear-gradient(90deg,#06b6d4,#0ea5a6);">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="font-size:34px;padding:12px;background:rgba(255,255,255,0.12); border-radius:10px;">
+            <i class="fa-solid fa-layer-group" style="font-size:20px;color:#fff"></i>
+          </div>
+          <div>
+            <div style="font-size:14px;opacity:0.95">Batches</div>
+            <div style="font-weight:700;font-size:22px;margin-top:4px;">{{ batch_count or 0 }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Boys -->
+    <div style="flex:1 1 220px;">
+      <div class="stats-card" style="padding:18px; border-radius:12px; background: linear-gradient(90deg,#fb923c,#f97316);">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="font-size:34px;padding:12px;background:rgba(255,255,255,0.12); border-radius:10px;">
+            <i class="fa-solid fa-mars" style="font-size:20px;color:#fff"></i>
+          </div>
+          <div>
+            <div style="font-size:14px;opacity:0.95">Boys</div>
+            <div style="font-weight:700;font-size:22px;margin-top:4px;">{{ male or 0 }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Girls -->
+    <div style="flex:1 1 220px;">
+      <div class="stats-card" style="padding:18px; border-radius:12px; background: linear-gradient(90deg,#ec4899,#d946ef);">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="font-size:34px;padding:12px;background:rgba(255,255,255,0.12); border-radius:10px;">
+            <i class="fa-solid fa-venus" style="font-size:20px;color:#fff"></i>
+          </div>
+          <div>
+            <div style="font-size:14px;opacity:0.95">Girls</div>
+            <div style="font-weight:700;font-size:22px;margin-top:4px;">{{ female or 0 }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Faculties -->
+    <div style="flex:1 1 220px;">
+      <div class="stats-card" style="padding:18px; border-radius:12px; background: linear-gradient(90deg,#7c3aed,#6d28d9);">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="font-size:34px;padding:12px;background:rgba(255,255,255,0.12); border-radius:10px;">
+            <i class="fa-solid fa-chalkboard-user" style="font-size:20px;color:#fff"></i>
+          </div>
+          <div>
+            <div style="font-size:14px;opacity:0.95">Faculties</div>
+            <div style="font-weight:700;font-size:22px;margin-top:4px;">{{ by_faculty|length if by_faculty is defined else 0 }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Two-column layout: Left = Batch table, Right = Faculty + Course breakdown -->
+<div class="row g-3">
+
+  <!-- Left column: Batch-wise small table -->
+  <div class="col-lg-7">
+    <div class="card mb-3">
+      <div class="card-body">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div style="font-weight:700;">Batch-wise Gender Distribution</div>
+          <div style="color:var(--muted); font-size:13px;">Showing latest batches</div>
+        </div>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:8%;">#</th>
+              <th>Batch Title</th>
+              <th class="text-center">Boys</th>
+              <th class="text-center">Girls</th>
+              <th class="text-center">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if batch_stats %}
+              {% for b in batch_stats %}
+                <tr>
+                  <td>{{ loop.index }}</td>
+                  <td>{{ b._id or 'N/A' }}</td>
+                  <td class="text-center">{{ b.boys or 0 }}</td>
+                  <td class="text-center">{{ b.girls or 0 }}</td>
+                  <td class="text-center">{{ b.total or 0 }}</td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="5" class="no-data">No batch stats available.</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Optional quick links -->
+    <div class="card">
+      <div class="card-body">
+        <a href="{{ url_for('students_list') }}" class="btn btn-outline-primary me-2">View All Students</a>
+        <a href="{{ url_for('batches_list') }}" class="btn btn-outline-secondary me-2">Manage Batches</a>
+        <a href="{{ url_for('faculty_list') }}" class="btn btn-outline-secondary">Manage Faculties</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column: Students by Faculty and by Course -->
+  <div class="col-lg-5">
+    <div class="card mb-3">
+      <div class="card-header">Students by Faculty</div>
+      <div class="card-body p-0">
+        <table class="table mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Faculty</th>
+              <th class="text-end">Students</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if by_faculty %}
+              {% for f in by_faculty %}
+                <tr>
+                  <td>{{ f.faculty_name }}</td>
+                  <td class="text-end">{{ f.count }}</td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="2" class="text-center text-muted">No faculty data.</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">Students by Course</div>
+      <div class="card-body p-0">
+        <table class="table mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Course</th>
+              <th class="text-end">Students</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if by_course %}
+              {% for c in by_course %}
+                <tr>
+                  <td>{{ c.course_name }}</td>
+                  <td class="text-end">{{ c.count }}</td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr><td colspan="2" class="text-center text-muted">No course data.</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- small footer note -->
+<div style="margin-top:18px; color:var(--muted); font-size:13px;">
+  Tip: Use the side menu to manage students, batches and payments. Click a card to add new records.
+</div>
+{% endblock %}

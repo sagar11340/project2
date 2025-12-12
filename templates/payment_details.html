@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="header-row">
+  <h1 class="page-title">Payments — {{ student.first_name }} {{ student.last_name }}</h1>
+  <div class="controls">
+    <a href="{{ url_for('add_payment', student_id=student._id) }}" class="btn btn-primary">+ Make Payment</a>
+  </div>
+</div>
+
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr><th>#</th><th>Date</th><th>Amount</th><th>GST</th><th>Total</th><th>Installment</th><th>Receipt</th></tr>
+    </thead>
+    <tbody>
+      {% if history %}
+        {% for p in history %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ p.date.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ p.amount }}</td>
+          <td>{{ p.gst }}</td>
+          <td>{{ p.total }}</td>
+          <td>{{ p.installment }}</td>
+          <td><a href="{{ url_for('print_receipt', receipt_no=p.receipt_no) }}">{{ p.receipt_no }}</a></td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="7" class="no-data">No payments</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
