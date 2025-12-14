@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # _______ modules and dependencies _______
+=======
+# _______modules and dependencies_______
+>>>>>>> e2596665caffd94d55c91636ed8432e13e5d0a18
 
 import os
 import sys
@@ -14,10 +18,13 @@ from functools import wraps
 from pprint import pprint
 from calendar import calendar
 
+<<<<<<< HEAD
 # 🔑 LOAD ENV FIRST
 from dotenv import load_dotenv
 load_dotenv()
 
+=======
+>>>>>>> e2596665caffd94d55c91636ed8432e13e5d0a18
 from flask import (
     Flask, render_template, request, redirect, url_for,
     flash, send_file, Response, abort, jsonify,
@@ -32,6 +39,7 @@ from pymongo import (
     ASCENDING, DESCENDING
 )
 from pymongo.errors import DuplicateKeyError
+<<<<<<< HEAD
 from datetime import datetime, timezone
 datetime.now(timezone.utc)
 
@@ -45,16 +53,36 @@ from utils import get_next_sequence, calc_gst
 from flask import current_app
 
 
+=======
+from bson.objectid import ObjectId
+
+from num2words import num2words
+
+from config import MONGO_URI, UPLOAD_FOLDER, SECRET_KEY, GST_PERCENT
+from utils import get_next_sequence, calc_gst
+from bson.errors import InvalidId
+from flask import current_app
+
+
+
+
+
+>>>>>>> e2596665caffd94d55c91636ed8432e13e5d0a18
 # ----------------- APP INIT -----------------
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET", "change_this_to_a_strong_secret")
 
+<<<<<<< HEAD
 # ----------------- UPLOAD FOLDER -----------------
+=======
+# Upload folder
+>>>>>>> e2596665caffd94d55c91636ed8432e13e5d0a18
 UPLOAD_FOLDER = os.path.join(app.root_path, "static", "uploads")
 ALLOWED_EXT = {"png", "jpg", "jpeg", "gif"}
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+<<<<<<< HEAD
 # ----------------- DATABASE CONNECT (MONGODB ATLAS) -----------------
 MONGO_URI = os.environ.get("MONGO_URI")
 
@@ -72,6 +100,14 @@ except Exception as e:
     print("❌ MongoDB Atlas Connection Error:", e)
 
 # ----------------- COLLECTIONS -----------------
+=======
+# ----------------- DATABASE CONNECT -----------------
+MONGO_URI = os.environ.get("MONGO_URI") or "mongodb://localhost:27017"
+client = MongoClient(MONGO_URI)
+db = client["institute_db"]
+
+# Collections
+>>>>>>> e2596665caffd94d55c91636ed8432e13e5d0a18
 students_col   = db.students
 batches_col    = db.batches
 courses_col    = db.courses
@@ -79,7 +115,11 @@ payments_col   = db.payments
 faculties_col  = db.faculties
 attendance_col = db.attendance
 salaries_col   = db.salaries
+<<<<<<< HEAD
 users_col      = db.users   # IMPORTANT
+=======
+users_col      = db.users   # <-- IMPORTANT
+>>>>>>> e2596665caffd94d55c91636ed8432e13e5d0a18
 
 # Backwards-compatible aliases
 students  = students_col
@@ -89,11 +129,14 @@ payments  = payments_col
 faculties = faculties_col
 teachers_col = faculties_col
 
+<<<<<<< HEAD
 
 
 
 
 
+=======
+>>>>>>> e2596665caffd94d55c91636ed8432e13e5d0a18
 # ----------------- HELPERS (NOW db EXISTS) -----------------
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXT
@@ -1074,7 +1117,13 @@ def payment_details(student_id):
     history = list(db.payments.find({"student_id": student["_id"]}).sort("date", -1))
     return render_template('payment_details.html', student=student, history=history)
 
+<<<<<<< HEAD
 
+=======
+# from bson.errors import InvalidId
+# from bson.objectid import ObjectId
+# from werkzeug.utils import secure_filename
+>>>>>>> e2596665caffd94d55c91636ed8432e13e5d0a18
 
 @app.route('/student/edit/<sid>', methods=['GET','POST'])
 def edit_student(sid):
@@ -1538,6 +1587,11 @@ from flask import (
     render_template, request, jsonify, flash, redirect, url_for, current_app
 )
 import traceback
+<<<<<<< HEAD
+=======
+from bson.objectid import ObjectId
+from datetime import datetime, timedelta
+>>>>>>> e2596665caffd94d55c91636ed8432e13e5d0a18
 
 # --- small helper: pick_collection (keeps your previous behavior if already defined) ---
 def pick_collection(*possible_names, fallback_name=None):
@@ -2439,7 +2493,12 @@ def generate_certificate_manual():
 
 @app.route("/generate_certificate/<id>")
 def generate_certificate(id):
+<<<<<<< HEAD
     
+=======
+    from bson.objectid import ObjectId
+    from datetime import date, datetime
+>>>>>>> e2596665caffd94d55c91636ed8432e13e5d0a18
 
     # 1) find student by _id or form_no
     student = None
@@ -2554,10 +2613,17 @@ def generate_certificate(id):
 
 
 # --- Daybook: Ledger & Voucher APIs (paste into app.py, no blueprint) ---
+<<<<<<< HEAD
 
 from bson.errors import InvalidId
 from flask import jsonify, request, render_template, abort
 
+=======
+from bson.objectid import ObjectId
+from bson.errors import InvalidId
+from flask import jsonify, request, render_template, abort
+from datetime import datetime
+>>>>>>> e2596665caffd94d55c91636ed8432e13e5d0a18
 
 @app.route('/daybook')
 def daybook():
