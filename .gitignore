@@ -1,12 +1,14 @@
-<<<<<<< HEAD
 # Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.env
+
+# Virtual environment
 venv/
-.env/
+
+# Environment variables
+.env
 
 # VS Code
 .vscode/
@@ -14,8 +16,6 @@ venv/
 # OS
 .DS_Store
 desktop.ini
-=======
-__pycache__/
-venv/
-*.pyc
->>>>>>> e2596665caffd94d55c91636ed8432e13e5d0a18
+
+# Project uploads (important)
+static/uploads/
