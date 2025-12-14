@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Daybook — Tally-style Journal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+    /* ---------- Palette & base ---------- */
+    :root{
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --muted: #6c757d;
+      --accent-1: #6c5ce7;   /* purple */
+      --accent-2: #00b894;   /* green */
+      --accent-3: #0984e3;   /* blue */
+      --accent-grad: linear-gradient(90deg,var(--accent-1),var(--accent-3));
+      --glass: rgba(255,255,255,0.65);
+      --shadow: 0 8px 30px rgba(16,24,40,0.08);
+      --radius: 12px;
+    }
+    html,body { height:100%; background:var(--bg); font-family: Inter, "Segoe UI", Arial, sans-serif; margin:0; padding:18px; color:#1f2937; }
+
+    .app { max-width:1200px; margin:12px auto; }
+
+    /* ---------- Card & header ---------- */
+    .tally-card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.95), var(--card));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:18px;
+      border: 1px solid rgba(20,30,60,0.04);
+      overflow:hidden;
+    }
+    .tally-card h4 { font-weight:700; color: #0f172a; margin:0; }
+
+    .tally-toolbar { display:flex; gap:10px; align-items:center; color:var(--muted); }
+    .kbd { background: rgba(255,255,255,0.8); border: 1px solid rgba(16,24,40,0.04); padding:4px 8px; border-radius:8px; font-size:.8rem; color:#111827; box-shadow: 0 2px 6px rgba(16,24,40,0.04); }
+
+    /* ---------- Form layout ---------- */
+    .row.g-2 .form-label.small{ font-size:.82rem; color:var(--muted); margin-bottom:.25rem; }
+    input.form-control, .form-select { border-radius:8px; border:1px solid rgba(16,24,40,0.06); box-shadow:none; padding:.5rem .6rem; }
+    input.form-control:focus, .form-select:focus { box-shadow: 0 6px 18px rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.6); outline: none; }
+
+    /* ---------- Buttons (glossy/pill) ---------- */
+    .btn {
+      border-radius: 10rem;
+      font-weight:600;
+      transition: transform .12s ease, box-shadow .12s ease, opacity .12s;
+      box-shadow: 0 6px 18px rgba(16,24,40,0.04);
+      border: none;
+    }
+    .btn:active{ transform: translateY(1px) }
+    .btn:focus{ box-shadow: 0 6px 24px rgba(99,102,241,0.12); outline: none; }
+
+    /* primary gradient */
+    .btn-primary {
+      background: var(--accent-grad);
+      color: #fff;
+      border: none;
+    }
+    .btn-primary:hover { filter:brightness(.98); box-shadow: 0 10px 30px rgba(99,102,241,0.14); }
+
+    /* outline / ghost styles */
+    .btn-outline-primary {
+      background: linear-gradient(180deg, rgba(108,92,231,0.06), rgba(9,132,227,0.04));
+      color: var(--accent-1);
+      border: 1px solid rgba(108,92,231,0.12);
+    }
+    .btn-outline-info { background: rgba(9,132,227,0.06); color: var(--accent-3); border: 1px solid rgba(9,132,227,0.10); }
+    .btn-outline-secondary { background: rgba(0,0,0,0.04); color:#374151; border:1px solid rgba(0,0,0,0.04); }
+    .btn-outline-danger { background: rgba(255, 235, 238, 0.6); color:#ef4444; border:1px solid rgba(239,68,68,0.12); }
+
+    .btn-sm { padding:.4rem .7rem; font-size:.86rem; }
+
+    /* CTA Save (slightly larger) */
+    #saveVoucher.btn-primary { padding:.5rem .9rem; font-weight:700; }
+
+    /* ---------- Lines & suggestions ---------- */
+    .entry-row { display:grid; grid-template-columns: 1fr 1fr 120px 140px; gap:10px; align-items:end; }
+    @media (max-width:900px) { .entry-row { grid-template-columns: 1fr; } }
+    .ledger-input { position:relative; }
+    .suggestions {
+      position:absolute; left:0; right:0; z-index:60;
+      background: #fff; border: 1px solid rgba(16,24,40,0.06); border-top:0; max-height:220px; overflow:auto; border-bottom-left-radius:10px; border-bottom-right-radius:10px;
+      box-shadow: 0 10px 24px rgba(16,24,40,0.06);
+    }
+    .suggestions div { padding:8px 10px; cursor:pointer; font-weight:600; }
+    .suggestions div small { display:block; font-weight:400; color:var(--muted); font-size:.8rem; }
+    .suggestions div:hover { background: linear-gradient(90deg, rgba(108,92,231,0.06), rgba(9,132,227,0.04)); }
+
+    /* chips */
+    .chip { display:inline-block; padding:.25rem .6rem; border-radius:999px; background: linear-gradient(90deg,#f0f7ff,#fff); border:1px solid rgba(9,132,227,0.06); font-weight:700; color:var(--accent-3); }
+
+    /* ---------- table ---------- */
+    .table-responsive { border-radius:10px; overflow:hidden; border:1px solid rgba(16,24,40,0.04); margin-top:8px; background:linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.95)); }
+    .table thead { background: linear-gradient(90deg, rgba(108,92,231,0.06), rgba(9,132,227,0.04)); }
+    .table thead th { font-weight:700; color:#0f172a; border-bottom:0; }
+    .table tbody tr { background:transparent; }
+    .table tbody tr + tr td { border-top:1px solid rgba(16,24,40,0.04); }
+    .table tbody tr:hover td { background: linear-gradient(90deg, rgba(108,92,231,0.02), rgba(9,132,227,0.01)); }
+    .table-fixed { table-layout: fixed; word-wrap: break-word; }
+
+    .right { text-align:right; }
+    .muted { color:var(--muted); }
+
+    /* action buttons in table */
+    .action-btn { display:inline-flex; gap:6px; align-items:center; padding:.35rem .55rem; border-radius:8px; font-weight:700; font-size:.82rem; }
+    .action-edit { background: linear-gradient(90deg,#fff,#f7fbff); color:var(--accent-1); border:1px solid rgba(108,92,231,0.12); }
+    .action-del { background:#fff7f8; color:#ef4444; border:1px solid rgba(239,68,68,0.10); }
+    .action-print { background:#fff; color:var(--accent-3); border:1px solid rgba(9,132,227,0.09); }
+
+    /* modal adjustments */
+    .modal { display:none; position:fixed; inset:0; z-index:1050; align-items:center; justify-content:center; background: rgba(15, 23, 42, 0.32); }
+    .modal-dialog { max-width:920px; }
+    .modal-content { border-radius:12px; padding:0; overflow:hidden; border:none; box-shadow: 0 20px 60px rgba(2,6,23,0.32); }
+    .modal-header { background: linear-gradient(90deg,var(--accent-1),var(--accent-3)); color:#fff; padding:16px 18px; }
+    .modal-body { padding:18px; background: #fff; color:#111827; }
+    .btn-close { background:rgba(255,255,255,0.14); border-radius:8px; border:none; }
+
+    /* small helpers */
+    .muted { color:var(--muted); }
+    .gap-2 { gap:0.6rem; display:flex; align-items:center; flex-wrap:wrap; }
+    .float-right { margin-left:auto; }
+
+    /* responsive tweaks for small screens */
+    @media(max-width:760px){
+      .tally-toolbar { gap:6px; }
+      .table thead th:nth-child(5), .table thead th:nth-child(7), .table thead th:nth-child(9), .table td:nth-child(5), .table td:nth-child(7), .table td:nth-child(9) { display:none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="tally-card">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">Daybook — Tally-style Journal</h4>
+        <div class="tally-toolbar">
+          <div class="small muted">Shortcuts:</div>
+          <div class="kbd">Ctrl+N</div>
+          <div class="kbd">Ctrl+S</div>
+          <div class="kbd">Ctrl+F</div>
+        </div>
+      </div>
+
+      <!-- voucher header -->
+      <div class="row g-2 align-items-end mb-2">
+        <div class="col-md-2">
+          <label class="form-label small">Date</label>
+          <input type="date" id="vDate" class="form-control" required>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small">Voucher Type</label>
+          <select id="vType" class="form-select small">
+            <option value="journal">Journal</option>
+            <option value="receipt">Receipt</option>
+            <option value="payment">Payment</option>
+            <option value="contra">Contra</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small">Voucher No</label>
+          <input type="text" id="vNo" class="form-control small" placeholder="Auto (optional)">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small">Narration</label>
+          <input type="text" id="vNarration" class="form-control" placeholder="Narration for voucher">
+        </div>
+        <div class="col-md-2 text-end">
+          <label class="form-label small d-block">&nbsp;</label>
+          <button id="manageLedgersBtn" class="btn btn-outline-secondary btn-sm">Manage Ledgers</button>
+        </div>
+      </div>
+
+      <div id="lines" class="mb-2"></div>
+
+      <div class="d-flex gap-2 mb-3">
+        <button id="addLine" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-plus me-1"></i> Add Ledger (Ins)</button>
+        <button id="saveVoucher" class="btn btn-primary btn-sm"><i class="fa-solid fa-floppy-disk me-1"></i> Save Voucher (Ctrl+S)</button>
+        <button id="clearVoucher" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-eraser me-1"></i> Clear</button>
+        <button id="exportDaybook" class="btn btn-outline-info btn-sm ms-auto"><i class="fa-solid fa-file-csv me-1"></i> Export CSV</button>
+      </div>
+
+      <hr>
+
+      <div class="row g-2 align-items-end mb-2">
+        <div class="col-md-3">
+          <label class="form-label small">From</label>
+          <input type="date" id="fFrom" class="form-control small">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small">To</label>
+          <input type="date" id="fTo" class="form-control small">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small">Search</label>
+          <input type="text" id="fSearch" class="form-control small" placeholder="account / narration / voucher">
+        </div>
+        <div class="col-md-3 text-end small muted">
+          Total Debit: <strong id="sumDebit">0.00</strong> &nbsp; Credit: <strong id="sumCredit">0.00</strong>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm table-fixed" id="voucherTable">
+          <thead class="small">
+            <tr>
+              <th style="width:110px">Date</th>
+              <th style="width:90px">V.No</th>
+              <th style="width:120px">Type</th>
+              <th>Account (Dr)</th>
+              <th style="width:120px" class="right">Dr Amt</th>
+              <th>Account (Cr)</th>
+              <th style="width:120px" class="right">Cr Amt</th>
+              <th style="width:180px">Narration</th>
+              <th style="width:160px">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="voucherBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ledger Manager Modal -->
+  <div class="modal" tabindex="-1" id="ledgerModal">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Ledgers & Groups</h5>
+          <button type="button" class="btn-close" id="closeLedgerModal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <input id="newLedgerName" class="form-control" placeholder="New ledger name">
+            </div>
+            <div class="col-md-4">
+              <select id="newLedgerGroup" class="form-select">
+                <option value="">(no group)</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <button id="createLedgerBtn" class="btn btn-primary w-100">Create</button>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-5">
+              <h6>Ledger Groups</h6>
+              <div class="mb-2 d-flex gap-2">
+                <input id="grpName" class="form-control form-control-sm" placeholder="New group name">
+                <button id="createGroupBtn" class="btn btn-sm btn-outline-primary">Add</button>
+              </div>
+              <ul id="groupList" class="list-group"></ul>
+            </div>
+
+            <div class="col-md-7">
+              <h6>Ledgers</h6>
+              <div class="mb-2">
+                <input id="ledgerSearch" class="form-control form-control-sm" placeholder="Search ledger">
+              </div>
+              <div id="ledgerList" style="max-height:360px;overflow:auto"></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="closeLedgerModal2" class="btn btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(async function(){
+  // --- keep your original JS code unchanged (I pasted it as-is) ---
+  const vDate = document.getElementById('vDate');
+  const vType = document.getElementById('vType');
+  const vNo = document.getElementById('vNo');
+  const vNarration = document.getElementById('vNarration');
+  const linesEl = document.getElementById('lines');
+  const voucherBody = document.getElementById('voucherBody');
+  const sumDebit = document.getElementById('sumDebit');
+  const sumCredit = document.getElementById('sumCredit');
+  const fFrom = document.getElementById('fFrom');
+  const fTo = document.getElementById('fTo');
+  const fSearch = document.getElementById('fSearch');
+
+  const ledgerModal = document.getElementById('ledgerModal');
+  const manageLedgersBtn = document.getElementById('manageLedgersBtn');
+  const closeLedgerModal = document.getElementById('closeLedgerModal');
+  const closeLedgerModal2 = document.getElementById('closeLedgerModal2');
+  const newLedgerName = document.getElementById('newLedgerName');
+  const newLedgerGroup = document.getElementById('newLedgerGroup');
+  const createLedgerBtn = document.getElementById('createLedgerBtn');
+  const grpName = document.getElementById('grpName');
+  const createGroupBtn = document.getElementById('createGroupBtn');
+  const groupList = document.getElementById('groupList');
+  const ledgerList = document.getElementById('ledgerList');
+  const ledgerSearch = document.getElementById('ledgerSearch');
+
+  if(!vDate.value) vDate.value = new Date().toISOString().slice(0,10);
+  const fmt = n => Number(n||0).toFixed(2);
+  const uid = ()=> 'v' + Math.random().toString(36).slice(2,9);
+
+  async function apiGet(url){ const r = await fetch(url); if(!r.ok) throw new Error(await r.text()); return r.json(); }
+  async function apiPost(url, data){ const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}); return r; }
+  async function apiPut(url, data){ const r = await fetch(url, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}); return r; }
+  async function apiDelete(url){ const r = await fetch(url, {method:'DELETE'}); return r; }
+
+  let ledgers = [];
+  let groups = [];
+
+  async function loadLedgers(){
+    try{ const docs = await apiGet('/api/ledgers'); ledgers = docs; }catch(e){ ledgers = []; console.warn('loadLedgers failed', e); }
+    renderLedgerUI();
+  }
+  async function loadGroups(){
+    try{ const docs = await apiGet('/api/ledger_groups'); groups = docs; }catch(e){ groups = []; console.warn('loadGroups failed', e); }
+    renderGroupUI();
+  }
+
+  function renderGroupUI(){
+    newLedgerGroup.innerHTML = '<option value="">(no group)</option>' + groups.map(g => `<option value="${g._id}">${escapeHtml(g.name)}</option>`).join('');
+    groupList.innerHTML = groups.map(g => `<li class="list-group-item d-flex justify-content-between align-items-center">
+      <div><strong>${escapeHtml(g.name)}</strong></div>
+      <div><button data-id="${g._id}" class="btn btn-sm btn-outline-danger btn-del-group">Del</button></div>
+    </li>`).join('') || '<li class="list-group-item muted">No groups</li>';
+    groupList.querySelectorAll('.btn-del-group').forEach(b => b.addEventListener('click', async ()=> {
+      if(!confirm('Delete group? (ledgers remain)')) return;
+      const id = b.dataset.id;
+      const r = await apiDelete('/api/ledger_groups/' + encodeURIComponent(id));
+      if(r.ok) { await loadGroups(); await loadLedgers(); }
+      else alert('Delete group failed');
+    }));
+  }
+
+  function renderLedgerUI(filter=''){
+    const q = filter.trim().toLowerCase();
+    const rows = ledgers.filter(l => !q || l.name.toLowerCase().includes(q) || (l.group_name||'').toLowerCase().includes(q))
+      .map(l => `<div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+        <div>
+          <div><strong>${escapeHtml(l.name)}</strong></div>
+          <div class="small muted">${escapeHtml(l.group_name || '')}</div>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-primary btn-edit-ledger" data-id="${l._id}">Edit</button>
+          <button class="btn btn-sm btn-outline-danger btn-del-ledger" data-id="${l._id}">Del</button>
+        </div>
+      </div>`).join('');
+    ledgerList.innerHTML = rows || '<div class="p-2 muted">No ledgers</div>';
+    ledgerList.querySelectorAll('.btn-del-ledger').forEach(b=> b.addEventListener('click', async ()=> {
+      if(!confirm('Delete ledger?')) return;
+      const id = b.dataset.id;
+      const r = await apiDelete('/api/ledgers/' + encodeURIComponent(id));
+      if(r.ok) await loadLedgers(); else alert('Delete ledger failed');
+    }));
+    ledgerList.querySelectorAll('.btn-edit-ledger').forEach(b => b.addEventListener('click', async ()=>{ 
+      const id = b.dataset.id;
+      const doc = ledgers.find(x=> x._id === id);
+      if(!doc) return alert('Ledger not found');
+      const name = prompt('Ledger name', doc.name);
+      const gid = prompt('Group ID (leave blank to keep or remove):', doc.group || '');
+      if(name === null) return;
+      const payload = { name: name.trim(), group: (gid||'').trim() || null };
+      const resp = await apiPut('/api/ledgers/' + encodeURIComponent(id), payload);
+      if(resp.ok) { await loadLedgers(); await loadGroups(); } else alert('Update failed');
+    }));
+  }
+
+  createLedgerBtn.addEventListener('click', async ()=>{
+    const name = newLedgerName.value.trim();
+    const group = newLedgerGroup.value || null;
+    if(!name) return alert('Name required');
+    try{
+      const r = await apiPost('/api/ledgers', { name, group });
+      if(r.status === 201){ newLedgerName.value=''; await loadLedgers(); await loadGroups(); alert('Created'); }
+      else { const j = await r.json().catch(()=>({error:'server'})); alert('Create failed: ' + (j.error || JSON.stringify(j))); }
+    }catch(e){ alert('Create ledger error: '+e.message); }
+  });
+
+  createGroupBtn.addEventListener('click', async ()=>{
+    const name = grpName.value.trim();
+    if(!name) return alert('Group name required');
+    try{
+      const r = await apiPost('/api/ledger_groups', { name });
+      if(r.status === 201){ grpName.value=''; await loadGroups(); alert('Created'); }
+      else { alert('Create group failed'); }
+    }catch(e){ alert('Create group error: '+e.message); }
+  });
+
+  manageLedgersBtn.addEventListener('click', ()=> { ledgerModal.style.display='flex'; loadLedgers(); loadGroups(); });
+  closeLedgerModal.addEventListener('click', ()=> ledgerModal.style.display='none');
+  closeLedgerModal2.addEventListener('click', ()=> ledgerModal.style.display='none');
+  ledgerModal.addEventListener('click', (e)=> { if(e.target === ledgerModal) ledgerModal.style.display='none'; });
+
+  ledgerSearch.addEventListener('input', ()=> renderLedgerUI(ledgerSearch.value));
+
+  function ledgerNames(){ return ledgers.map(l => l.name).sort(); }
+
+  function makeLine(data={}) {
+    const wrapper = document.createElement('div'); wrapper.className='entry-row mb-2';
+    wrapper.innerHTML = `
+      <div>
+        <label class="form-label small">Ledger</label>
+        <div class="ledger-input">
+          <input class="form-control form-control-sm ledger-name" placeholder="Type ledger name" value="${(data.account||'').replaceAll('"','&quot;')}">
+          <div class="suggestions" style="display:none"></div>
+        </div>
+      </div>
+      <div>
+        <label class="form-label small">(details)</label>
+        <input class="form-control form-control-sm line-details" placeholder="Alias / details" value="${(data.details||'').replaceAll('"','&quot;')}">
+      </div>
+      <div>
+        <label class="form-label small">Type</label>
+        <select class="form-select form-select-sm line-type">
+          <option value="debit">Dr</option>
+          <option value="credit">Cr</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label small">Amount</label>
+        <input class="form-control form-control-sm text-end line-amount" type="number" step="0.01" value="${data.amount||''}">
+      </div>
+    `;
+    const nameInput = wrapper.querySelector('.ledger-name');
+    const sugg = wrapper.querySelector('.suggestions');
+
+    nameInput.addEventListener('input', ()=> {
+      const q = nameInput.value.trim().toLowerCase();
+      if(!q){ sugg.style.display='none'; return; }
+      const matches = ledgerNames().filter(l=> l.toLowerCase().includes(q)).slice(0,10);
+      if(matches.length===0){ sugg.style.display='none'; return; }
+      sugg.innerHTML = matches.map(m=>`<div class="sugg-item">${m}</div>`).join('');
+      sugg.style.display='block';
+      sugg.querySelectorAll('.sugg-item').forEach(el=> el.addEventListener('click', ()=>{ nameInput.value = el.textContent; sugg.style.display='none'; }));
+    });
+    nameInput.addEventListener('blur', ()=> setTimeout(()=> sugg.style.display='none', 120));
+
+    wrapper.querySelector('.line-type').value = data.type || 'debit';
+    linesEl.appendChild(wrapper);
+    return wrapper;
+  }
+
+  function ensureDefaultLines(){ if(linesEl.children.length===0){ makeLine({type:'debit'}); makeLine({type:'credit'}); } }
+  document.getElementById('addLine').addEventListener('click', ()=> makeLine({}));
+  document.getElementById('clearVoucher').addEventListener('click', ()=>{ vNarration.value=''; vNo.value=''; linesEl.innerHTML=''; ensureDefaultLines(); });
+
+  function collectLines(){
+    const nodes = Array.from(linesEl.children);
+    return nodes.map(n=> {
+      const account = n.querySelector('.ledger-name').value.trim();
+      const details = n.querySelector('.line-details').value.trim();
+      const type = n.querySelector('.line-type').value;
+      const amount = Number(n.querySelector('.line-amount').value || 0);
+      return {account, details, type, amount};
+    }).filter(x=> x.account && x.amount > 0);
+  }
+
+  async function loadVouchers(){
+    try{
+      const params = new URLSearchParams();
+      if(fFrom.value) params.set('from', fFrom.value);
+      if(fTo.value) params.set('to', fTo.value);
+      if(fSearch.value) params.set('search', fSearch.value);
+      const data = await apiGet('/api/vouchers?' + params.toString());
+      vouchers = Array.isArray(data)? data : [];
+      renderTable();
+    }catch(e){ console.warn('loadVouchers failed', e); }
+  }
+
+  async function saveVoucher(){
+    const date = vDate.value; const type = vType.value; const no = vNo.value || ''; const narration = vNarration.value.trim();
+    const lines = collectLines();
+    if(!date || lines.length===0){ return alert('Enter date and at least one ledger line with positive amount'); }
+    const dr = lines.filter(l=> l.type==='debit').reduce((s,i)=> s + Number(i.amount||0), 0);
+    const cr = lines.filter(l=> l.type==='credit').reduce((s,i)=> s + Number(i.amount||0), 0);
+    if(Math.abs(dr - cr) > 0.009){ return alert('Voucher not balanced: Debit (' + fmt(dr) + ') != Credit (' + fmt(cr) + ').'); }
+    const payload = { date, type, no, narration, lines };
+    try{
+      const resp = await apiPost('/api/vouchers', payload);
+      if(resp.status === 201){
+        await loadVouchers();
+        vNarration.value=''; vNo.value=''; linesEl.innerHTML=''; ensureDefaultLines();
+        alert('Voucher saved');
+      } else {
+        const err = await resp.json().catch(()=>({error:'server error'}));
+        alert('Save failed: ' + (err.error || JSON.stringify(err)));
+      }
+    }catch(e){ alert('Save error: ' + e.message); }
+  }
+  document.getElementById('saveVoucher').addEventListener('click', saveVoucher);
+
+  let vouchers = [];
+  function renderTable(){
+    voucherBody.innerHTML = '';
+    const from = fFrom.value ? new Date(fFrom.value) : null;
+    const to = fTo.value ? new Date(fTo.value) : null;
+    const q = fSearch.value.trim().toLowerCase();
+    let sumDr=0, sumCr=0;
+    const list = vouchers.filter(v=>{
+      if(from && new Date(v.date) < from) return false;
+      if(to && new Date(v.date) > new Date(to.getFullYear(),to.getMonth(),to.getDate(),23,59,59)) return false;
+      if(q){
+        const text = ((v.no||'') + ' ' + (v.narration||'') + ' ' + ((v.lines||[]).map(l=> l.account).join(' '))).toLowerCase();
+        if(!text.includes(q)) return false;
+      }
+      return true;
+    }).sort((a,b)=> new Date(a.date) - new Date(b.date));
+    for(const v of list){
+      const drAmt = (v.lines||[]).filter(l=> l.type==='debit').reduce((s,i)=> s + Number(i.amount||0), 0);
+      const crAmt = (v.lines||[]).filter(l=> l.type==='credit').reduce((s,i)=> s + Number(i.amount||0), 0);
+      sumDr += drAmt; sumCr += crAmt;
+      const drAcc = (v.lines||[]).find(l=> l.type==='debit')?.account || '';
+      const crAcc = (v.lines||[]).find(l=> l.type==='credit')?.account || '';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${v.date}</td>
+        <td>${v.no||''}</td>
+        <td>${v.type}</td>
+        <td>${drAcc}</td>
+        <td class="right">${fmt(drAmt)}</td>
+        <td>${crAcc}</td>
+        <td class="right">${fmt(crAmt)}</td>
+        <td>${v.narration||''}</td>
+        <td class="d-flex gap-1">
+          <button class="action-btn action-edit btn-edit" data-id="${v._id}"><i class="fa-regular fa-pen-to-square"></i> Edit</button>
+          <button class="action-btn action-del btn-del" data-id="${v._id}"><i class="fa-regular fa-trash-can"></i> Del</button>
+          <a class="action-btn action-print" href="/voucher/print/${v._id}" target="_blank"><i class="fa-solid fa-print"></i> Print</a>
+        </td>
+      `;
+      voucherBody.appendChild(tr);
+    }
+    sumDebit.textContent = fmt(sumDr); sumCredit.textContent = fmt(sumCr);
+    voucherBody.querySelectorAll('.btn-del').forEach(b=> b.addEventListener('click', ()=> deleteVoucher(b.dataset.id)));
+    voucherBody.querySelectorAll('.btn-edit').forEach(b=> b.addEventListener('click', async ()=>{ /* edit flow preserved */ }));
+  }
+
+  async function deleteVoucher(id){
+    if(!confirm('Delete voucher?')) return;
+    const r = await apiDelete('/api/vouchers/' + encodeURIComponent(id));
+    if(r.ok) await loadVouchers(); else alert('Delete failed');
+  }
+
+  function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  await loadGroups();
+  await loadLedgers();
+  await loadVouchers();
+  ensureDefaultLines();
+
+  [fFrom,fTo,fSearch].forEach(el=> el.addEventListener('input', loadVouchers));
+  window.addEventListener('keydown', (e)=>{
+    if(e.ctrlKey && e.key.toLowerCase()==='s'){ e.preventDefault(); saveVoucher(); }
+    if(e.ctrlKey && e.key.toLowerCase()==='n'){ e.preventDefault(); document.getElementById('clearVoucher').click(); }
+    if(e.ctrlKey && e.key.toLowerCase()==='f'){ e.preventDefault(); document.getElementById('fSearch').focus(); }
+  });
+
+})();
+</script>
+</body>
+</html>

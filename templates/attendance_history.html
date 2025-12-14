@@ -1,0 +1,65 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-4">
+  <div class="card p-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="mb-0">Attendance History</h4>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('attendance') }}" class="btn btn-outline-primary btn-sm">Back to Register</a>
+      </div>
+    </div>
+
+    <form class="row g-2 mb-3">
+      <div class="col-auto">
+        <input type="date" name="date" class="form-control form-control-sm" value="{{ filter_date or '' }}">
+      </div>
+      <div class="col-auto">
+        <select name="batch" class="form-select form-select-sm">
+          <option value="">All Batches</option>
+          {% for key,name in batches_map.items() %}
+            <option value="{{ key }}" {% if filter_batch == key %}selected{% endif %}>{{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-sm btn-primary">Filter</button>
+      </div>
+    </form>
+
+    <div class="table-responsive">
+      <table class="table table-striped table-sm">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Date</th>
+            <th>Batch</th>
+            <th>Records</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if groups %}
+            {% for g in groups %}
+              {% set idx = loop.index %}
+              {% set date = g._id.date %}
+              {% set batch_id = g._id.batch_id %}
+              <tr>
+                <td>{{ idx }}</td>
+                <td>{{ date }}</td>
+                <td>{{ batches_map.get(batch_id, batch_id) }}</td>
+                <td>{{ g.count }}</td>
+                <td>
+                  <a href="{{ url_for('attendance_view') }}?date={{ date }}&batch={{ batch_id }}" class="btn btn-sm btn-outline-primary">View</a>
+                  <a href="{{ url_for('attendance_export_csv') }}?date={{ date }}&batch={{ batch_id }}" class="btn btn-sm btn-outline-secondary">CSV</a>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="5" class="text-center text-muted">No attendance records found.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

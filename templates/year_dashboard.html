@@ -1,0 +1,207 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Year-wise Dashboard</h3>
+    <div>
+      <a href="{{ url_for('add_student') }}" class="btn btn-success">Add Student (global)</a>
+    </div>
+  </div>
+
+  <!-- Search / Filter -->
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <form class="d-flex" method="get" action="{{ url_for('students_list') }}">
+        <input name="q" class="form-control me-2" placeholder="Search student or batch..." value="{{ request.args.get('q','') }}">
+        <button class="btn btn-outline-primary">Search</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Years accordion: one line summary per year -->
+  <div class="accordion" id="yearsAccordion">
+    {% for y in years %}
+    <div class="accordion-item mb-2 rounded shadow-sm">
+      <h2 class="accordion-header" id="heading{{ y.year }}">
+        <button class="accordion-button collapsed d-flex align-items-center" type="button"
+                data-bs-toggle="collapse" data-bs-target="#collapse{{ y.year }}" aria-expanded="false"
+                aria-controls="collapse{{ y.year }}">
+          <!-- one-line summary -->
+          <div class="d-flex w-100 justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+              <i class="fa-solid fa-folder-open fa-lg text-primary"></i>
+              <div>
+                <div class="fw-bold">{{ y.year }}</div>
+                <small class="text-muted">Click to expand for batches & students</small>
+              </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+              <div class="text-end me-3">
+                <div class="small text-muted">Students</div>
+                <div class="fw-semibold">{{ y.total_students }}</div>
+              </div>
+
+              <div class="text-end me-3">
+                <div class="small text-muted">Batches</div>
+                <div class="fw-semibold">{{ y.total_batches }}</div>
+              </div>
+
+              <div class="text-end me-3">
+                <div class="small text-muted">Amount</div>
+                <div class="fw-semibold">₹ {{ "{:,.2f}".format(y.total_amount) }}</div>
+              </div>
+
+              <div class="d-flex gap-2">
+                <!-- Add student directly for this year -->
+                <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#addStudentModal"
+                        data-year="{{ y.year }}">
+                  <i class="fa-solid fa-user-plus"></i> Add
+                </button>
+
+                <!-- Quick actions -->
+                <a href="{{ url_for('students_list') }}?year={{ y.year }}" class="btn btn-sm btn-primary">View</a>
+              </div>
+            </div>
+          </div>
+        </button>
+      </h2>
+
+      <div id="collapse{{ y.year }}" class="accordion-collapse collapse" aria-labelledby="heading{{ y.year }}"
+           data-bs-parent="#yearsAccordion">
+        <div class="accordion-body">
+
+          <!-- Batches table (responsive) -->
+          <div class="table-responsive mb-3">
+            <table class="table table-hover table-sm align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Batch</th>
+                  <th>Start Date</th>
+                  <th>Students</th>
+                  <th>Collected (₹)</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for b in y.batches %}
+                <tr>
+                  <td>
+                    <div class="fw-semibold">{{ b.name }}</div>
+                    <small class="text-muted">{{ b.course }}</small>
+                  </td>
+                  <td>{{ b.start_date }}</td>
+                  <td>{{ b.student_count }}</td>
+                  <td>₹ {{ "{:,.2f}".format(b.collected or 0) }}</td>
+                  <td>
+                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('batch_view', bid=b._id) }}">Open</a>
+                    <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addStudentModal"
+                            data-year="{{ y.year }}" data-batch="{{ b._id }}" data-batch-name="{{ b.name }}">
+                      Add Student
+                    </button>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="5" class="text-muted">No batches for this year.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Students snapshot (first 6 avatars) -->
+          <div class="mb-2">
+            <div class="fw-semibold mb-1">Students snapshot</div>
+            <div class="d-flex flex-wrap gap-2">
+              {% for s in y.students[:8] %}
+                <div class="d-flex align-items-center gap-2 border rounded p-2">
+                  <img src="{{ s.photo or url_for('static', filename='avatar.png') }}" alt="photo" style="width:40px;height:40px;border-radius:6px;object-fit:cover;">
+                  <div>
+                    <div class="small fw-semibold">{{ s.first_name }} {{ s.last_name }}</div>
+                    <div class="small text-muted">{{ s.phone }}</div>
+                  </div>
+                </div>
+              {% else %}
+                <div class="text-muted">No students available.</div>
+              {% endfor %}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+<!-- Add Student Modal -->
+<div class="modal fade" id="addStudentModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form method="post" action="{{ url_for('add_student') }}" class="modal-content" enctype="multipart/form-data">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Student</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" name="year" id="modalYear">
+        <input type="hidden" name="batch_id" id="modalBatchId">
+
+        <div class="mb-2">
+          <label class="form-label">First name</label>
+          <input required name="first_name" class="form-control">
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label">Last name</label>
+          <input name="last_name" class="form-control">
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label">Phone</label>
+          <input name="phone" class="form-control">
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label">Form no (optional)</label>
+          <input name="form_no" class="form-control">
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label">Photo (optional)</label>
+          <input name="photo" type="file" accept="image/*" class="form-control">
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Student</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- small script to populate modal year & batch -->
+<script>
+  var addModal = document.getElementById('addStudentModal');
+  addModal.addEventListener('show.bs.modal', function (event) {
+    var btn = event.relatedTarget;
+    var year = btn.getAttribute('data-year') || '';
+    var batch = btn.getAttribute('data-batch') || '';
+    var batchName = btn.getAttribute('data-batch-name') || '';
+
+    document.getElementById('modalYear').value = year;
+    document.getElementById('modalBatchId').value = batch;
+
+    // update title if batch present
+    if (batch) {
+      addModal.querySelector('.modal-title').textContent = 'Add Student to ' + batchName + ' (' + year + ')';
+    } else {
+      addModal.querySelector('.modal-title').textContent = 'Add Student (' + year + ')';
+    }
+  });
+</script>
+
+{% endblock %}

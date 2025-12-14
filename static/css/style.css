@@ -1,0 +1,92 @@
+
+/* ___________login page css to bring it centre__________ */
+/* Ensure the page centers the card perfectly */
+body.login-bg {
+  display: flex;               /* already present, but ensure applied */
+  align-items: center;         /* vertical centering */
+  justify-content: center;     /* horizontal centering */
+  padding: 40px 20px;          /* safe page padding */
+  box-sizing: border-box;
+}
+
+/* Limit card width and center it */
+.login-card {
+  max-width: 960px;            /* keeps it from growing too wide */
+  width: 100%;
+  margin: 0 auto;              /* center horizontally */
+  display: flex;
+  align-items: stretch;
+}
+
+/* Make sure left column doesn't expand too far */
+.login-left {
+  min-width: 320px;
+  max-width: 520px;           /* prevents the left side from taking too much space */
+  flex: 0 0 48%;              /* prefer ~48% width on larger screens */
+}
+
+/* Right side takes remaining space but not excessively */
+.login-right {
+  flex: 1 1 52%;
+  min-width: 280px;
+}
+
+/* Remove any stray page-level container spacing interfering with centring */
+.main-container, .container {
+  --ignore-me: 0;
+}
+
+
+
+
+
+
+
+/* ---------- Full-width heading ---------- */
+.title-block {
+    width: 100% !important;
+    max-width: 100% !important;
+    text-align: center;
+    padding-top: 5px;
+}
+
+/* Top red line */
+.rm-title {
+    color: #a81f24;
+    font-weight: 900;
+    font-size: 34px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+/* Two-part institute name */
+.inst-title {
+    color: #073b36;
+    font-weight: 900;
+    font-size: 30px;
+    letter-spacing: 1px;
+    white-space: nowrap; /* important */
+    text-transform: uppercase;
+}
+
+/* Certificate word */
+.cert-label {
+    color: #a81f24;
+    font-weight: 800;
+    font-size: 26px;
+    margin-top: 6px;
+}
+
+/* Safety: if display area is narrower (mobile), reduce sizes slightly */
+@media (max-width: 1100px) {
+  .rm-title { font-size: 28px; }
+  .inst-title { font-size: 22px; }
+  .cert-label { font-size: 22px; }
+}
+
+@media print {
+  .rm-title { font-size: 30px; }
+  .inst-title { font-size: 26px; }
+  .cert-label { font-size: 26px; }
+}

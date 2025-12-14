@@ -1,0 +1,139 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center my-3">
+    <h3 class="mb-0 d-flex align-items-center">
+      Students List
+      <span class="badge bg-secondary ms-3">{{ students|length }}</span>
+    </h3>
+
+    <div>
+      <form method="get" class="d-inline-block me-2">
+        <div class="input-group">
+          <input type="text" class="form-control" name="q" value="{{ q }}" placeholder="Search by name, phone...">
+          <button class="btn btn-primary" type="submit">Search</button>
+        </div>
+      </form>
+      <a href="{{ url_for('add_student') }}" class="btn btn-success">+ Add Student</a>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover table-sm align-middle mb-0" id="students-table">
+      <tbody>
+
+        {% for s in students %}
+        
+        <!-- ROW 1 (clickable row) -->
+        <tr class="student-row" data-target="#details{{ loop.index }}">
+          <td style="width:80px;">
+            {% if s.photo %}
+              <img src="{{ url_for('static', filename='uploads/' + s.photo) }}"
+                   style="height:56px;width:56px;object-fit:cover;" class="img-fluid rounded">
+            {% else %}
+              <div class="bg-light d-flex align-items-center justify-content-center"
+                   style="height:56px;width:56px;">
+                <small class="text-muted">No Photo</small>
+              </div>
+            {% endif %}
+          </td>
+
+          <td class="p-0">
+            <div class="details-bar d-flex align-items-center w-100">
+              <div class="flex-grow-1 px-3 py-2 text-truncate small">
+                <strong>Name:</strong> {{ s.first_name or '-' }} &nbsp; |
+                  <strong>Course:</strong>{{ s.course_name or '-' }} &nbsp; |
+                  <strong>Faculty:</strong>{{ s.faculty_name or s.faculty or '-' }} &nbsp; |
+                  <strong>Phone No:</strong>{{ s.phone or '-' }} &nbsp; | 
+                  <strong>Gender:</strong> {{ s.gender or '-' }} &nbsp; | 
+                  <strong>Admission:</strong> {{ s.admission_date or '-' }} &nbsp; |
+                  <strong>Form No:</strong>{{ s.form_no or '-' }} &nbsp; |
+                  <strong>Status:</strong> {{ s.payment_status or '-' }} 
+              </div>
+
+              <div class="actions px-3 py-2 d-flex gap-2">
+                <a href="{{ url_for('edit_student', sid=s._id) }}" class="btn btn-edit btn-sm">Edit</a>
+                <form method="post" action="{{ url_for('delete_student', sid=s._id) }}">
+                  <button class="btn btn-delete btn-sm" onclick="return confirm('Delete this student?')">Delete</button>
+                </form>
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- ROW 2 (hidden by default) -->
+<tr id="details{{ loop.index }}" class="details-row" style="display:none;">
+  <td colspan="2" class="table-secondary small p-3">
+    <div class="row">
+      <!-- LEFT COLUMN -->
+      <div class="col-md-6">
+        <p class="mb-1"><strong>First Name:</strong> {{ s.first_name or '-' }}</p>
+        <p class="mb-1"><strong>Last Name:</strong> {{ s.last_name or '-' }}</p>
+        <p class="mb-1"><strong>Father Name:</strong> {{ s.father_name or '-' }}</p>
+        <p class="mb-1"><strong>DOB:</strong> {{ s.dob or '-' }}</p>
+        <p class="mb-1"><strong>Phone:</strong> {{ s.phone or '-' }}</p>
+        <p class="mb-1"><strong>Parents Phone:</strong> {{ s.parents_phone or s.parent_phone or '-' }}</p>
+        <p class="mb-1"><strong>Aadhaar:</strong> {{ s.aadhar or s.aadhaar_no or '-' }}</p>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="col-md-6">
+        <p class="mb-1"><strong>Gender:</strong> {{ s.gender or '-' }}</p>
+        <p class="mb-1"><strong>Qualification:</strong> {{ s.qualification or '-' }}</p>
+        <p class="mb-1"><strong>Course:</strong> {{ s.course_name or '-' }}</p>
+        <p class="mb-1"><strong>Batch:</strong> {{ s.batch_name or s.batch or '-' }}</p>
+        <p class="mb-1"><strong>Faculty:</strong> {{ s.faculty_name or s.faculty or '-' }}</p>
+        <p class="mb-1"><strong>Admission Date:</strong> {{ s.admission_date or '-' }}</p>
+        <p class="mb-1"><strong>Form No:</strong> {{ s.form_no or '-' }}</p>
+        <p class="mb-0"><strong>Blood Group:</strong> {{ s.blood_group or '-' }} &nbsp; | &nbsp; <strong>Status:</strong> {{ s.payment_status or '-' }}</p>
+      </div>
+    </div>
+  </td>
+</tr>
+
+
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- CSS -->
+<style>
+  .details-bar {
+    background: #f1f3f5;
+    border-left: 1px solid #e9ecef;
+    border-right: 1px solid #e9ecef;
+  }
+
+  .btn-edit {
+    background:#0d6efd;color:#fff;border:none;border-radius:4px;padding:3px 10px;
+  }
+  .btn-delete {
+    background:#dc3545;color:#fff;border:none;border-radius:4px;padding:3px 10px;
+  }
+
+  .student-row { cursor:pointer; }
+  .student-row:hover { background:#f8f9fa; }
+</style>
+
+<!-- JS TOGGLE LOGIC -->
+<script>
+document.querySelectorAll(".student-row").forEach(row => {
+  row.addEventListener("click", function(e) {
+
+    // prevent toggle when clicking Edit/Delete buttons
+    if (e.target.closest("a") || e.target.closest("button")) return;
+
+    const target = document.querySelector(this.dataset.target);
+    if (target.style.display === "none") {
+      target.style.display = "table-row";
+    } else {
+      target.style.display = "none";
+    }
+  });
+});
+</script>
+
+{% endblock %}

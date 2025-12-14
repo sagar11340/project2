@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h3 class="my-3">Saved Salaries</h3>
+
+<table class="table table-bordered table-striped align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>Teacher</th>
+      <th>Month</th>
+      <th>Hours</th>
+      <th>Rate</th>
+      <th>Amount</th>
+      <th>Saved On</th>
+      <th class="text-center">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for s in salaries %}
+      <tr>
+        <td>{{ s.get('teacher_name', '') }}</td>
+        <td>{{ s.get('month_str', '') }}</td>
+        <td>{{ s.get('total_hours', 0) }}</td>
+
+        {# use dict.get to avoid undefined attribute errors #}
+        <td>₹{{ '%.2f' % ( (s.get('hourly_rate', 0) | float) ) }}</td>
+        <td>₹{{ '%.2f' % ( (s.get('amount', 0) | float) ) }}</td>
+
+        {# generated_on may be datetime or string; coerce to string to be safe #}
+        <td>{{ s.get('generated_on') | string }}</td>
+
+        <td class="text-center">
+          <a href="{{ url_for('salary_edit', id=s.get('_id')) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+
+          <form method="post" action="{{ url_for('salary_delete', id=s.get('_id')) }}" style="display:inline;" onsubmit="return confirmDelete(this);">
+            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr>
+        <td colspan="7" class="text-center text-muted">No salary records found.</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script>
+  function confirmDelete(form) {
+    return confirm('Delete this salary record? This cannot be undone.');
+  }
+</script>
+
+{% endblock %}

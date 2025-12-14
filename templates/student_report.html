@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+{% block content %}
+<h3>Students Report</h3>
+
+<div class="d-flex justify-content-between mb-3">
+  <div>
+    <form method="get" class="d-flex">
+      <input type="text" name="q" class="form-control me-2" placeholder="Search name / form no / phone" value="{{ request.args.get('q','') }}">
+      <button class="btn btn-primary">Search</button>
+    </form>
+  </div>
+  <div>
+    <a class="btn btn-secondary" onclick="window.print()">Print</a>
+    <a class="btn btn-success" href="{{ url_for('students_list') }}">Back to Students</a>
+  </div>
+</div>
+
+<table class="table table-striped table-sm">
+  <thead class="table-light">
+    <tr>
+      <th>sl</th>
+      <th>Form No</th>
+      <th>Full Name</th>
+      <th>Gender</th>
+      <th>Batch</th>
+      <th>Course</th>
+      <th>Admission Date</th>
+      <th>Expiry Date</th>
+      <th>Phone</th>
+      <th>Status</th>
+      <th class="text-end">Balance</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for s in students %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td>{{ s.form_no or '' }}</td>
+      <td>{{ s.first_name }} {% if s.last_name %} {{ s.last_name }}{% endif %}</td>
+      <td>{{ s.gender or '' }}</td>
+      <td>{{ s.batch_title or (s.batch and s.batch.title) or '' }}</td>
+      <td>{{ s.course_name or (s.course and s.course.name) or '' }}</td>
+      <td>{{ s.admission_date or '' }}</td>
+      <td>{{ s.expiry_date or '' }}</td>
+      <td>{{ s.phone or '' }}</td>
+      <td>{{ s.payment_status or '' }}</td>
+      <td class="text-end">{{ s.balance if s.balance is defined else (s.get('balance','') if s.get else '') }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="11" class="text-center">No students found.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

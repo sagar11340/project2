@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Receipt - {{ payment.receipt_no or payment._id }}</title>
+  <style>
+
+    /* ----------- A5 LANDSCAPE PRINT SETTINGS ----------- */
+    @page {
+      size: A5 landscape;
+      margin: 8mm;
+    }
+
+    body {
+      font-family: "Times New Roman", serif;
+      background: #fff;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      border: 2px solid #000;
+      padding: 10px 20px;
+      width: calc(210mm - 20px); /* A5 landscape width */
+      margin: auto;
+      background: #fff;
+    }
+
+    /* ----------- Logo (center top) ----------- */
+    .logo-box {
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .logo-box img {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+    }
+
+    .header {
+      text-align: center;
+      border-bottom: 1px solid #000;
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+    }
+    .header h2 { text-decoration: underline; font-weight: bold; margin:2px 0; }
+    .header h3 { margin: 2px 0; }
+    .subhead { font-size: 12px; line-height: 1.3; }
+
+    /* ----------- Buttons (should not print) ----------- */
+    .top-controls {
+      display:flex;
+      justify-content:space-between;
+      margin: 10px 0;
+    }
+
+    .btn {
+      background:#007bff;
+      padding:6px 12px;
+      border-radius:4px;
+      color:#fff;
+      text-decoration:none;
+      font-size:14px;
+      border:1px solid #0056d2;
+    }
+
+    /* ----------- Info section ----------- */
+    .info {
+      display:flex;
+      justify-content:space-between;
+      margin-top:8px;
+    }
+    .info p { margin:3px 0; font-size:14px; }
+
+    /* ----------- Table ----------- */
+    table {
+      width:100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    th, td {
+      border:1px solid #000;
+      padding:6px 8px;
+      text-align:center;
+    }
+    th { background:#f0f0f0; }
+
+    /* ----------- Footer & Signature ----------- */
+    .footer { margin-top:10px; font-size:14px; }
+
+    .signature {
+      margin-top: 20px;
+      text-align:right;
+    }
+    .signature img {
+      width:150px;
+      height:auto;
+      display:block;
+      margin-left:auto;
+      margin-bottom:-6px;
+    }
+    .signature p {
+      margin-top: 0;
+      font-size: 14px;
+      text-align:center;
+    }
+
+    /* ----------- HIDE BUTTONS WHEN PRINTING ----------- */
+    @media print {
+      .top-controls { display:none !important; }
+      .btn { display:none !important; }
+      body { margin:0; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Buttons - visible only on screen -->
+  <div class="top-controls">
+    <a href="{{ url_for('index') }}" class="btn">🏠 Home</a>
+    <button class="btn" onclick="window.print()">🖨 Print</button>
+  </div>
+
+  <div class="container">
+
+    <!-- Logo Centered -->
+    <div class="logo-box">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="logo">
+    </div>
+
+    <div class="header">
+      <h2>RECEIPT</h2>
+      <h3>RAMAKRISHNA MISSION</h3>
+      <h3>COMPUTER TRAINING CENTRE</h3>
+      <p class="subhead">
+        Ramakrishna Ashrama Marg, New Delhi – 110055<br>
+        (A Branch Centre of Ramakrishna Mission, Belur Math, West Bengal – 711202)<br>
+        <strong>GSTIN:</strong> 07AAAAR1077P1Z5
+      </p>
+    </div>
+
+    <div class="info">
+      <div>
+        <p><strong>Receipt No:</strong> {{ payment.receipt_no or payment._id }}</p>
+        <p><strong>Student Name:</strong> {{ payment.student_name }}</p>
+        <p><strong>Registration No:</strong> {{ payment.registration_no or 'N/A' }}</p>
+
+        <p><strong>Course:</strong> {{ payment.course_name }}</p>
+        
+      </div>
+      <div style="text-align:right;">
+        <p><strong>Date:</strong> {{ payment.date.strftime('%d-%m-%Y') if payment.date else 'N/A' }}</p>
+        <p><strong>Phone No:</strong> {{ payment.phone or 'N/A' }}</p>
+        <!-- <p><strong>Payment Mode:</strong> {{ payment.mode or 'N/A' }}</p> -->
+        <p><strong>Payment Mode:</strong> {{ payment.payment_mode or 'N/A' }}</p>
+
+      </div>
+    </div>
+
+    <h3>Description</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>S.No</th>
+          <th>Particular</th>
+          <th>SAC</th>
+          <th>Fee</th>
+          <th>9% CGST</th>
+          <th>9% SGST</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td style="text-align:left;">Computer Fee</td>
+          <td>9992</td>
+          <td>{{ payment.amount|float|round(0)|int }}</td>
+          <td>{{ (payment.gst|float / 2)|round(0)|int }}</td>
+          <td>{{ (payment.gst|float / 2)|round(0)|int }}</td>
+          <td>{{ payment.total|float|round(0)|int }} /-</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="footer">
+      <p><strong>Received the sum of Rupees (in words):</strong>
+        – {{ payment.total|float|int | num2words(lang='en_IN') | title }} Only</p>
+    </div>
+
+    <!-- Signature -->
+    <div class="signature">
+      <img src="{{ url_for('static', filename='uploads/signature.png') }}" alt="signature">
+      <p style="text-align: right;">Secretary</p>
+    </div>
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Generate Salary — Hours & Days Based</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <style>
+    :root{
+      --bg:#f3f6fb; --muted:#6b7280; --accent1:#3b82f6; --accent2:#7c3aed; --radius:12px;
+    }
+    body{ background:var(--bg); font-family:Inter, "Segoe UI", Arial; padding:22px; color:#0f172a; }
+    .wrap { max-width:920px; margin:18px auto; }
+    .card { border-radius:var(--radius); box-shadow:0 10px 30px rgba(2,6,23,0.06); overflow:hidden; }
+    .mode-toggle { display:flex; gap:8px; justify-content:center; margin-bottom:14px; }
+    .mode-btn { flex:1; border-radius:999px; padding:.6rem .9rem; font-weight:700; cursor:pointer; border:0; transition:.12s; }
+    .mode-btn.active { box-shadow:0 8px 20px rgba(59,130,246,0.14); transform:translateY(-2px); color:#fff; background:linear-gradient(90deg,var(--accent2),var(--accent1)); }
+    .mode-btn.inactive { background:#fff; border:1px solid rgba(15,23,42,0.06); color: #0f172a; }
+    .form-label { font-weight:600; color:var(--muted); font-size:.92rem; }
+    .small-muted{ color:var(--muted); font-size:.9rem; margin-top:.25rem; }
+    input.form-control, select.form-control { border-radius:10px; padding:.5rem .6rem; border:1px solid rgba(15,23,42,0.06); }
+    .btn-primary { border-radius:10px; background:linear-gradient(90deg,var(--accent1),var(--accent2)); border:0; font-weight:700; box-shadow:0 8px 26px rgba(59,130,246,0.08); }
+    .btn-ghost { border-radius:10px; background:transparent; border:1px solid rgba(15,23,42,0.06); color:#0f172a; }
+    .result-card { border-radius:10px; background:linear-gradient(180deg,#fff,#fbfdff); padding:12px; border:1px solid rgba(15,23,42,0.04); }
+    .summary-table td, .summary-table th { padding:.45rem .6rem; vertical-align:middle; }
+    .muted { color:var(--muted); }
+    .muted-strong { color:var(--muted); font-weight:700; }
+    @media(max-width:720px){ .mode-toggle{flex-direction:column;} .mode-btn{width:100%} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card p-3">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h4 class="mb-0">Salary Generator</h4>
+        <div class="muted small">Choose mode & generate salary</div>
+      </div>
+
+      <!-- Mode toggle -->
+      <div class="mode-toggle mb-3">
+        <button id="btnHours" class="mode-btn active">Hours-based</button>
+        <button id="btnDays" class="mode-btn inactive">Days-based (Monthly)</button>
+      </div>
+
+      <!-- HOURS-BASED (unchanged) -->
+      <div id="hoursFormWrap">
+        <form id="hoursForm" method="post" action="{{ url_for('salary_generate') }}" autocomplete="off">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Teacher Name</label>
+              <select class="form-select" name="teacher_id" id="hours_teacher" required>
+                <option value="">-- Select Teacher --</option>
+                {% if teachers %}
+                  {% for t in teachers %}
+                    <option value="{{ t._id|e }}">{{ t.name|e }}{% if t.hourly_rate is not none %} (₹{{ '%.2f' % (t.hourly_rate|float) }}/hour){% endif %}</option>
+                  {% endfor %}
+                {% else %}
+                  <option value="">No teachers available</option>
+                {% endif %}
+              </select>
+              <div class="small-muted">If hourly rate is missing, 0.00 will be used.</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Select Month</label>
+              <input type="month" class="form-control" name="month" id="hours_month" required>
+              <div class="small-muted">Choose month (YYYY-MM)</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Total Hours (optional)</label>
+              <input type="number" step="0.25" min="0" class="form-control" name="manual_hours" id="hours_manual">
+              <div class="small-muted">If filled, these hours will be used instead of attendance</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Hourly Rate (override, optional)</label>
+              <input type="number" step="0.01" min="0" class="form-control" name="hourly_rate" id="hours_rate">
+              <div class="small-muted">Leave blank to use stored teacher rate</div>
+            </div>
+
+            <div class="col-12">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="hours_save" name="save" checked>
+                <label class="form-check-label small-muted" for="hours_save">Save this month's salary</label>
+              </div>
+            </div>
+
+            <div class="col-12 d-grid gap-2">
+              <button id="hoursSubmit" class="btn btn-primary">Generate Salary — Hours Based</button>
+            </div>
+          </div>
+        </form>
+
+        <div id="hoursResult" class="mt-3" style="display:none;">
+          <div class="result-card">
+            <strong>Hours Salary Preview</strong>
+            <pre id="hoursPreview" style="margin:8px 0 0 0; font-size:0.95rem; white-space:pre-wrap"></pre>
+            <div class="mt-2 d-flex gap-2">
+              <button id="hoursPrint" class="btn btn-ghost btn-sm">Print</button>
+              <button id="hoursClose" class="btn btn-ghost btn-sm">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DAYS-BASED -->
+      <div id="daysFormWrap" style="display:none;">
+        <form id="daysForm" autocomplete="off">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Teacher Name</label>
+              <select class="form-select" name="teacher_id" id="days_teacher" required>
+                <option value="">-- Select Teacher --</option>
+                {% if teachers %}
+                  {% for t in teachers %}
+                    <option value="{{ t._id|e }}">{{ t.name|e }}</option>
+                  {% endfor %}
+                {% else %}
+                  <option value="">No teachers available</option>
+                {% endif %}
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Month</label>
+              <input type="month" class="form-control" name="month" id="days_month" required>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Total Collection (₹)</label>
+              <input type="number" step="0.01" min="0" class="form-control" id="total_collection" name="total_collection" placeholder="Total collection for teacher">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Fixed Monthly Salary (₹)</label>
+              <input type="number" step="0.01" min="0" class="form-control" id="fixed_salary" name="fixed_salary" placeholder="Monthly salary">
+            </div>
+
+            <!-- NEW: working days / present / half-day / paid leave -->
+            <div class="col-md-6">
+              <label class="form-label">Working Days in Month (fallback)</label>
+              <input type="number" step="1" min="1" class="form-control" id="working_days" value="26">
+              <div class="small-muted">Total expected working days (used only if month not selected)</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Days Present</label>
+              <input type="number" step="1" min="0" class="form-control" id="days_present" value="26">
+              <div class="small-muted">Full days the teacher was present</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Half Days (count)</label>
+              <input type="number" step="1" min="0" class="form-control" id="half_days" value="0">
+              <div class="small-muted">Half-day count (each counts as 0.5 day)</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Paid Leave Days</label>
+              <input type="number" step="1" min="0" class="form-control" id="paid_leave_days" value="0">
+              <div class="small-muted">Paid leaves counted as full paid days</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Incentive %</label>
+              <input type="number" step="0.1" min="0" class="form-control" id="incentive_pct" value="5" name="incentive_pct">
+              <div class="small-muted">Incentive applied on (Total Collection - prorated salary)</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Pension Allowance (Add) (₹)</label>
+              <input type="number" step="0.01" min="0" class="form-control" id="pension_add" value="1000" name="pension_add">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Food Charges (Deduct) (₹)</label>
+              <input type="number" step="0.01" min="0" class="form-control" id="food_charges" value="800" name="food_charges">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Pension Deduction (Deduct) (₹)</label>
+              <input type="number" step="0.01" min="0" class="form-control" id="pension_ded" value="1000" name="pension_ded">
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">TDS %</label>
+              <input type="number" step="0.1" min="0" class="form-control" id="tds_pct" value="1" name="tds_pct">
+              <div class="small-muted">TDS calculated on the subtotal (Prorated Salary + Incentive + Pension Add)</div>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+              <button id="daysPreviewBtn" type="button" class="btn btn-outline-primary">Preview Days-based Salary</button>
+              <button id="daysSubmitBtn" type="button" class="btn btn-primary ms-auto">Generate & Save (Days Based)</button>
+            </div>
+          </div>
+        </form>
+
+        <!-- days preview -->
+        <div id="daysPreview" class="mt-3" style="display:none;">
+          <div class="result-card">
+            <div class="d-flex justify-content-between align-items-center">
+              <strong>Days-based Salary Preview</strong>
+              <div class="muted small">Preview only — press Save to store</div>
+            </div>
+
+            <div class="table-responsive mt-2">
+              <table class="table summary-table" style="min-width:560px">
+                <tbody>
+                  <tr><th style="width:220px">Name of Employee</th><td id="p_name"></td></tr>
+                  <tr><th>Total Collection</th><td id="p_total_collection"></td></tr>
+
+                  <tr><th>Fixed Monthly Salary</th><td id="p_fixed_salary"></td></tr>
+                  <tr><th>Days in Month</th><td id="p_days_in_month"></td></tr>
+                  <tr><th>Per-day (integer)</th><td id="p_per_day"></td></tr>
+                  <tr><th>Present + Paid Leave + 0.5×Half-days</th><td id="p_attendance_equiv"></td></tr>
+                  <tr><th>Absent Days</th><td id="p_absent_days"></td></tr>
+                  <tr><th>Prorated Salary</th><td id="p_prorated_salary"></td></tr>
+                  <tr><th>Salary Deduction (absent)</th><td id="p_salary_deduction"></td></tr>
+
+                  <tr><th>Total Collection − Prorated Salary</th><td id="p_surplus"></td></tr>
+                  <tr><th>Incentive (<span id="p_incent_pct"></span>%)</th><td id="p_incent_amt"></td></tr>
+                  <tr><th>+ Pension Allowance</th><td id="p_pension_add"></td></tr>
+                  <tr><th><strong>Total (subtotal)</strong></th><td id="p_subtotal"></td></tr>
+
+                  <tr><th>- (less) TDS (<span id="p_tds_pct"></span>%)</th><td id="p_tds_amt"></td></tr>
+                  <tr><th>- (less) Food Charges</th><td id="p_food"></td></tr>
+                  <tr><th>- (less) Pension Deduction</th><td id="p_pension_ded"></td></tr>
+                  <tr><th><strong>Gross Salary</strong></th><td id="p_gross" style="font-weight:800; font-size:1.05rem"></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="mt-2 d-flex gap-2">
+              <button id="daysPrint" class="btn btn-ghost">Print</button>
+              <button id="daysClose" class="btn btn-ghost">Close Preview</button>
+              <button id="daysSaveFromPreview" class="btn btn-primary ms-auto">Save Salary (POST)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+  // Mode toggle
+  const btnHours = document.getElementById('btnHours'), btnDays = document.getElementById('btnDays');
+  const hoursWrap = document.getElementById('hoursFormWrap'), daysWrap = document.getElementById('daysFormWrap');
+  function showHours(){ btnHours.classList.add('active'); btnHours.classList.remove('inactive'); btnDays.classList.remove('active'); btnDays.classList.add('inactive'); hoursWrap.style.display='block'; daysWrap.style.display='none'; }
+  function showDays(){ btnDays.classList.add('active'); btnDays.classList.remove('inactive'); btnHours.classList.remove('active'); btnHours.classList.add('inactive'); hoursWrap.style.display='none'; daysWrap.style.display='block'; }
+  btnHours.addEventListener('click', showHours); btnDays.addEventListener('click', showDays);
+
+  // auto month default
+  (function(){ const now=new Date(), y=now.getFullYear(), m=String(now.getMonth()+1).padStart(2,'0'); const val=`${y}-${m}`; document.getElementById('hours_month').value = val; document.getElementById('days_month').value = val; })();
+
+  /* HOURS: existing post flow (keeps behavior) */
+  const hoursForm = document.getElementById('hoursForm'), hoursSubmit = document.getElementById('hoursSubmit');
+  const hoursResult = document.getElementById('hoursResult'), hoursPreview = document.getElementById('hoursPreview');
+  hoursForm.addEventListener('submit', async function(e){
+    e.preventDefault();
+    hoursSubmit.disabled = true; hoursSubmit.textContent = 'Generating...';
+    const data = new FormData(hoursForm);
+    try {
+      const res = await fetch(hoursForm.action, { method:'POST', body: data, headers:{ 'Accept':'application/json' } });
+      if(!res.ok){ const txt = await res.text().catch(()=>res.statusText); alert('Server error: ' + txt); return; }
+      const json = await res.json();
+      let lines = [];
+      lines.push(`Teacher : ${json.teacher_name || 'N/A'}`);
+      lines.push(`Month   : ${json.month || ''}`);
+      lines.push(`Hours   : ${Number(json.total_hours||0).toFixed(2)}`);
+      lines.push(`Rate    : ₹${Number(json.hourly_rate||0).toFixed(2)}`);
+      lines.push(`Amount  : ₹${Number(json.amount||0).toFixed(2)}`);
+      lines.push(`Saved   : ${json.saved ? 'Yes' : 'No'}`);
+      hoursPreview.textContent = lines.join('\n');
+      hoursResult.style.display = 'block';
+      hoursResult.scrollIntoView({behavior:'smooth'});
+    } catch(err){ console.error(err); alert('Network error'); }
+    finally{ hoursSubmit.disabled = false; hoursSubmit.textContent = 'Generate Salary — Hours Based'; }
+  });
+  document.getElementById('hoursClose').addEventListener('click', ()=> hoursResult.style.display='none');
+  document.getElementById('hoursPrint').addEventListener('click', ()=> { const w = window.open('','_blank','width=600,height=500'); w.document.write('<pre style="font-size:15px;">' + hoursPreview.textContent + '</pre>'); w.document.close(); w.print(); });
+
+  /* DAYS: compute with integer per-day (Math.floor) using real days in month */
+  function $id(id){ return document.getElementById(id); }
+  function fmt(n){ return Number(n||0).toFixed(2); }
+
+  function computeDaysSalary(){
+    const teacherSel = $id('days_teacher'); const teacherName = teacherSel.options[teacherSel.selectedIndex]?.text || '';
+    const totalCollection = Number($id('total_collection').value||0);
+    const fixedSalary = Number($id('fixed_salary').value||0);
+
+    // Determine daysInMonth from selected month input (YYYY-MM). fallback to #working_days if missing.
+    let daysInMonth = null;
+    const monthVal = $id('days_month')?.value || '';
+    if(monthVal && monthVal.includes('-')){
+      try {
+        const [yy, mm] = monthVal.split('-').map(x=>parseInt(x,10));
+        daysInMonth = new Date(yy, mm, 0).getDate(); // last day of month
+      } catch(e) { daysInMonth = null; }
+    }
+    if(!daysInMonth || daysInMonth <= 0){
+      daysInMonth = Math.max(1, Number($id('working_days')?.value || 26));
+    }
+
+    // attendance inputs
+    const daysPresent = Math.max(0, Number($id('days_present').value||0));
+    const halfDays = Math.max(0, Number($id('half_days').value||0));
+    const paidLeave = Math.max(0, Number($id('paid_leave_days').value||0));
+    const incentivePct = Number($id('incentive_pct').value||0);
+    const pensionAdd = Number($id('pension_add').value||0);
+    const foodCharges = Number($id('food_charges').value||0);
+    const pensionDed = Number($id('pension_ded').value||0);
+    const tdsPct = Number($id('tds_pct').value||0);
+
+    // Attendance equivalent in full-days: present + paidLeave + 0.5*halfDays
+    const attendanceEquiv = (daysPresent + paidLeave + 0.5 * halfDays);
+
+    // Cap attendance at daysInMonth
+    const cappedAttendance = Math.min(attendanceEquiv, daysInMonth);
+
+    // integer per-day salary (Excel-like): floor(fixed / daysInMonth)
+    const perDay = Math.floor(fixedSalary / daysInMonth);
+
+    // absent days (integer)
+    const absentDays = Math.max(0, Math.round(daysInMonth - cappedAttendance));
+
+    // deduction = perDay * absentDays (integer arithmetic)
+    const deduction = perDay * absentDays;
+
+    // prorated salary = fixedSalary - deduction (integer)
+    const proratedSalary = Math.round(Math.max(0, fixedSalary - deduction));
+
+    // salary deduction (absent portion) (should equal deduction)
+    const salaryDeduction = Math.max(0, Math.round(fixedSalary - proratedSalary));
+
+    // incentive base = max(0, totalCollection - proratedSalary)
+    const surplus = Math.max(0, totalCollection - proratedSalary);
+
+    // incentive rounded to nearest rupee
+    const incentive = Math.round(surplus * (incentivePct / 100));
+
+    // subtotal (prorated salary + incentive + pension add)
+    const subtotal = proratedSalary + incentive + pensionAdd;
+
+    // tds rounded to nearest rupee
+    const tdsAmt = Math.round(subtotal * (tdsPct / 100));
+
+    // total deductions and gross
+    const totalDeductions = tdsAmt + foodCharges + pensionDed;
+    const gross = Math.round(Math.max(0, subtotal - totalDeductions));
+
+    return {
+      teacherName,
+      totalCollection,
+      fixedSalary,
+      daysInMonth,
+      perDay,
+      attendanceEquiv,
+      cappedAttendance,
+      absentDays,
+      proratedSalary,
+      salaryDeduction,
+      surplus,
+      incentive,
+      pensionAdd,
+      subtotal,
+      tdsAmt,
+      foodCharges,
+      pensionDed,
+      gross,
+      incentivePct,
+      tdsPct
+    };
+  }
+
+  function renderDaysPreview(data){
+    $id('p_name').textContent = data.teacherName || '-';
+    $id('p_total_collection').textContent = '₹' + fmt(data.totalCollection);
+    $id('p_fixed_salary').textContent = '₹' + fmt(data.fixedSalary);
+    $id('p_days_in_month').textContent = (data.daysInMonth || 0);
+    $id('p_per_day').textContent = '₹' + fmt(data.perDay);
+    $id('p_attendance_equiv').textContent = `${fmt(data.attendanceEquiv)}  (capped: ${fmt(data.cappedAttendance)})`;
+    $id('p_absent_days').textContent = data.absentDays;
+    $id('p_prorated_salary').textContent = '₹' + fmt(data.proratedSalary);
+    $id('p_salary_deduction').textContent = '₹' + fmt(data.salaryDeduction);
+
+    $id('p_surplus').textContent = '₹' + fmt(data.surplus);
+    $id('p_incent_pct').textContent = fmt(data.incentivePct);
+    $id('p_incent_amt').textContent = '₹' + fmt(data.incentive);
+    $id('p_pension_add').textContent = '₹' + fmt(data.pensionAdd);
+    $id('p_subtotal').textContent = '₹' + fmt(data.subtotal);
+
+    $id('p_tds_pct').textContent = fmt(data.tdsPct);
+    $id('p_tds_amt').textContent = '₹' + fmt(data.tdsAmt);
+    $id('p_food').textContent = '₹' + fmt(data.foodCharges);
+    $id('p_pension_ded').textContent = '₹' + fmt(data.pensionDed);
+    $id('p_gross').textContent = '₹' + fmt(data.gross);
+  }
+
+  // preview + save handlers
+  $id('daysPreviewBtn').addEventListener('click', ()=>{
+    const d = computeDaysSalary();
+    renderDaysPreview(d);
+    $id('daysPreview').style.display = 'block';
+    $id('daysPreview').scrollIntoView({behavior:'smooth'});
+  });
+
+  $id('daysPrint').addEventListener('click', ()=>{
+    const html = $id('daysPreview').querySelector('.result-card').outerHTML;
+    const w = window.open('','_blank','width=800,height=600');
+    w.document.write('<html><head><title>Salary Preview</title></head><body>' + html + '</body></html>');
+    w.document.close(); w.print();
+  });
+
+  $id('daysClose').addEventListener('click', ()=> { $id('daysPreview').style.display='none'; });
+
+  // Save from preview - POSTS JSON to /salary/generate_days
+  $id('daysSaveFromPreview').addEventListener('click', async ()=>{
+    const data = computeDaysSalary();
+    if(!$id('days_month').value){ alert('Select month'); return; }
+    if(!$id('days_teacher').value){ alert('Select teacher'); return; }
+
+    // prepare payload with new fields included (values are already integer-rounded where appropriate)
+    const payload = {
+      teacher_id: $id('days_teacher').value,
+      month: $id('days_month').value,
+      total_collection: Number(data.totalCollection),
+      fixed_salary: Number(data.fixedSalary),
+      days_in_month: Number(data.daysInMonth),
+      per_day: Number(data.perDay),
+      attendance_equiv: Number(data.attendanceEquiv),
+      absent_days: Number(data.absentDays),
+      prorated_salary: Number(data.proratedSalary),
+      salary_deduction: Number(data.salaryDeduction),
+      incentive_pct: Number(data.incentivePct),
+      incentive_amt: Number(data.incentive),
+      pension_add: Number(data.pensionAdd),
+      tds_pct: Number(data.tdsPct),
+      tds_amt: Number(data.tdsAmt),
+      food_charges: Number(data.foodCharges),
+      pension_ded: Number(data.pensionDed),
+      gross: Number(data.gross)
+    };
+
+    const btn = $id('daysSaveFromPreview'); btn.disabled = true; btn.textContent = 'Saving...';
+    try{
+      const resp = await fetch('/salary/generate_days', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if(resp.ok){
+        const j = await resp.json().catch(()=>({ saved: true }));
+        alert((j.message) || 'Saved successfully');
+      } else {
+        const txt = await resp.text().catch(()=>resp.statusText);
+        alert('Save failed: ' + txt);
+      }
+    }catch(err){ console.error(err); alert('Network error while saving'); }
+    finally{ btn.disabled = false; btn.textContent = 'Save Salary (POST)'; }
+  });
+
+  $id('daysSubmitBtn').addEventListener('click', ()=>{ $id('daysPreviewBtn').click(); setTimeout(()=> $id('daysSaveFromPreview').click(), 250); });
+
+  // default view
+  showHours();
+</script>
+</body>
+</html>

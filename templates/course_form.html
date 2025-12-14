@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+{% block content %}
+<h3>{{ 'Edit' if course else 'Add' }} Course</h3>
+<form method="post" class="col-md-6">
+  <label>Course Name</label>
+  <input type="text" name="name" value="{{ course.name if course else '' }}" class="form-control mb-2" required>
+  <label>Fee</label>
+  <input type="number" step="0.01" name="fee" value="{{ course.fee if course else '' }}" class="form-control mb-3">
+  <button class="btn btn-primary">Save</button>
+</form>
+{% endblock %}
