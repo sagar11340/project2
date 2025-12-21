@@ -286,94 +286,69 @@
   function $id(id){ return document.getElementById(id); }
   function fmt(n){ return Number(n||0).toFixed(2); }
 
-  function computeDaysSalary(){
-    const teacherSel = $id('days_teacher'); const teacherName = teacherSel.options[teacherSel.selectedIndex]?.text || '';
-    const totalCollection = Number($id('total_collection').value||0);
-    const fixedSalary = Number($id('fixed_salary').value||0);
+ function computeDaysSalary(){
+  const teacherSel = $id('days_teacher');
+  const teacherName = teacherSel.options[teacherSel.selectedIndex]?.text || '';
 
-    // Determine daysInMonth from selected month input (YYYY-MM). fallback to #working_days if missing.
-    let daysInMonth = null;
-    const monthVal = $id('days_month')?.value || '';
-    if(monthVal && monthVal.includes('-')){
-      try {
-        const [yy, mm] = monthVal.split('-').map(x=>parseInt(x,10));
-        daysInMonth = new Date(yy, mm, 0).getDate(); // last day of month
-      } catch(e) { daysInMonth = null; }
-    }
-    if(!daysInMonth || daysInMonth <= 0){
-      daysInMonth = Math.max(1, Number($id('working_days')?.value || 26));
-    }
+  const totalCollection = Number($id('total_collection').value||0);
+  const fixedSalary = Number($id('fixed_salary').value||0);
 
-    // attendance inputs
-    const daysPresent = Math.max(0, Number($id('days_present').value||0));
-    const halfDays = Math.max(0, Number($id('half_days').value||0));
-    const paidLeave = Math.max(0, Number($id('paid_leave_days').value||0));
-    const incentivePct = Number($id('incentive_pct').value||0);
-    const pensionAdd = Number($id('pension_add').value||0);
-    const foodCharges = Number($id('food_charges').value||0);
-    const pensionDed = Number($id('pension_ded').value||0);
-    const tdsPct = Number($id('tds_pct').value||0);
+  // ✅ FIXED 30 DAYS RULE
+  const daysInMonth = 30;
 
-    // Attendance equivalent in full-days: present + paidLeave + 0.5*halfDays
-    const attendanceEquiv = (daysPresent + paidLeave + 0.5 * halfDays);
+  const daysPresent = Math.max(0, Number($id('days_present').value||0));
+  const halfDays = Math.max(0, Number($id('half_days').value||0));
+  const paidLeave = Math.max(0, Number($id('paid_leave_days').value||0));
 
-    // Cap attendance at daysInMonth
-    const cappedAttendance = Math.min(attendanceEquiv, daysInMonth);
+  const incentivePct = Number($id('incentive_pct').value||0);
+  const pensionAdd = Number($id('pension_add').value||0);
+  const foodCharges = Number($id('food_charges').value||0);
+  const pensionDed = Number($id('pension_ded').value||0);
+  const tdsPct = Number($id('tds_pct').value||0);
 
-    // integer per-day salary (Excel-like): floor(fixed / daysInMonth)
-    const perDay = Math.floor(fixedSalary / daysInMonth);
+  const attendanceEquiv = daysPresent + paidLeave + 0.5 * halfDays;
+  const cappedAttendance = Math.min(attendanceEquiv, daysInMonth);
 
-    // absent days (integer)
-    const absentDays = Math.max(0, Math.round(daysInMonth - cappedAttendance));
+  const perDay = Math.floor(fixedSalary / daysInMonth);
+  const absentDays = Math.max(0, Math.round(daysInMonth - cappedAttendance));
+  const deduction = perDay * absentDays;
 
-    // deduction = perDay * absentDays (integer arithmetic)
-    const deduction = perDay * absentDays;
+  const proratedSalary = Math.round(Math.max(0, fixedSalary - deduction));
+  const salaryDeduction = Math.max(0, fixedSalary - proratedSalary);
 
-    // prorated salary = fixedSalary - deduction (integer)
-    const proratedSalary = Math.round(Math.max(0, fixedSalary - deduction));
+  const surplus = Math.max(0, totalCollection - proratedSalary);
+  const incentive = Math.round(surplus * (incentivePct / 100));
 
-    // salary deduction (absent portion) (should equal deduction)
-    const salaryDeduction = Math.max(0, Math.round(fixedSalary - proratedSalary));
+  const subtotal = proratedSalary + incentive + pensionAdd;
+  const tdsAmt = Math.round(subtotal * (tdsPct / 100));
 
-    // incentive base = max(0, totalCollection - proratedSalary)
-    const surplus = Math.max(0, totalCollection - proratedSalary);
+  const gross = Math.round(
+    Math.max(0, subtotal - (tdsAmt + foodCharges + pensionDed))
+  );
 
-    // incentive rounded to nearest rupee
-    const incentive = Math.round(surplus * (incentivePct / 100));
-
-    // subtotal (prorated salary + incentive + pension add)
-    const subtotal = proratedSalary + incentive + pensionAdd;
-
-    // tds rounded to nearest rupee
-    const tdsAmt = Math.round(subtotal * (tdsPct / 100));
-
-    // total deductions and gross
-    const totalDeductions = tdsAmt + foodCharges + pensionDed;
-    const gross = Math.round(Math.max(0, subtotal - totalDeductions));
-
-    return {
-      teacherName,
-      totalCollection,
-      fixedSalary,
-      daysInMonth,
-      perDay,
-      attendanceEquiv,
-      cappedAttendance,
-      absentDays,
-      proratedSalary,
-      salaryDeduction,
-      surplus,
-      incentive,
-      pensionAdd,
-      subtotal,
-      tdsAmt,
-      foodCharges,
-      pensionDed,
-      gross,
-      incentivePct,
-      tdsPct
-    };
-  }
+  return {
+    teacherName,
+    totalCollection,
+    fixedSalary,
+    daysInMonth,
+    perDay,
+    attendanceEquiv,
+    cappedAttendance,
+    absentDays,
+    proratedSalary,
+    salaryDeduction,
+    surplus,
+    incentive,
+    pensionAdd,
+    subtotal,
+    tdsAmt,
+    foodCharges,
+    pensionDed,
+    gross,
+    incentivePct,
+    tdsPct
+  };
+}
 
   function renderDaysPreview(data){
     $id('p_name').textContent = data.teacherName || '-';

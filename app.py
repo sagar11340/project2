@@ -1813,142 +1813,183 @@ def salary_generate():
         return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 
-# ---------- Days-based save endpoint (new) ----------
+# ---------- Days-based save endpoint (FIXED 30 DAYS) ----------
 @app.route('/salary/generate_days', methods=['POST'])
 def salary_generate_days():
     """
     Accept JSON payload from the days-based frontend preview and store the salary.
-    Expected JSON keys (the frontend sends these):
-      - teacher_id (required)
-      - month (YYYY-MM) (required)
-      - total_collection (number)
-      - fixed_salary (number)
-      - days_in_month (number)
-      - per_day (number)
-      - absent_days, attendance_equiv (number)
-      - prorated_salary (number)
-      - salary_deduction (number)
-      - incentive_pct, incentive_amt
-      - pension_add, pension_ded
-      - tds_pct, tds_amt
-      - food_charges
-      - gross
-    Returns JSON { saved: True, id: "..."} on success.
+    Business rule: EVERY MONTH = 30 DAYS (fixed)
     """
     try:
         if not request.is_json:
             return jsonify({"error": "Expected JSON body"}), 400
+
         payload = request.get_json()
 
-        # minimal validations
+        # ---------- Basic validation ----------
         teacher_id = payload.get('teacher_id')
-        month_str = payload.get('month')
+        month_str = payload.get('month')  # YYYY-MM
+
         if not teacher_id or not month_str:
             return jsonify({"error": "Missing teacher_id or month"}), 400
 
-        # parse month
+        # ---------- Parse month ----------
         try:
             year, month = map(int, str(month_str).split('-'))
             if month < 1 or month > 12:
                 raise ValueError()
         except Exception:
-            return jsonify({"error": "Invalid month format. Use YYYY-MM."}), 400
+            return jsonify({"error": "Invalid month format. Use YYYY-MM"}), 400
 
-        # pick salaries collection
+        # ---------- FIXED RULE ----------
+        FIXED_DAYS_IN_MONTH = 30
+
+        # ---------- Collections ----------
         salaries_col = pick_collection("salaries_col", fallback_name="salaries")
         teachers_col = pick_collection("teachers_col", "faculties_col", fallback_name="faculties")
-        if salaries_col is None:
-            current_app.logger.error("salaries collection not available; cannot save days salary")
-            return jsonify({"error": "Server configuration error: salaries collection not available"}), 500
 
-        # attempt to store teacher id as ObjectId if possible
+        if salaries_col is None:
+            return jsonify({"error": "Salaries collection not available"}), 500
+
+        # ---------- Teacher ID handling ----------
         try:
             stored_teacher_id = ObjectId(str(teacher_id)) if ObjectId.is_valid(str(teacher_id)) else str(teacher_id)
         except Exception:
             stored_teacher_id = str(teacher_id)
 
-        # resolve teacher name if possible
+        # ---------- Resolve teacher name ----------
         teacher_name = payload.get('teacher_name') or ''
+      
         if teachers_col is not None and not teacher_name:
-            try:
-                tdoc = None
-                if isinstance(stored_teacher_id, ObjectId):
-                    tdoc = teachers_col.find_one({"_id": stored_teacher_id})
-                else:
-                    tdoc = teachers_col.find_one({"_id": stored_teacher_id}) or teachers_col.find_one({"name": stored_teacher_id})
-                if tdoc:
-                    teacher_name = tdoc.get('name') or teacher_name
-            except Exception:
-                teacher_name = teacher_name or ''
 
-        # build document to store (store many fields so preview matches saved doc)
-        def num(k):
             try:
-                return float(payload.get(k) or 0)
+                tdoc = teachers_col.find_one({"_id": stored_teacher_id})
+                if tdoc:
+                    teacher_name = tdoc.get('name', '')
+            except Exception:
+                pass
+
+        # ---------- Helper ----------
+        def num(key):
+            try:
+                return float(payload.get(key) or 0)
             except Exception:
                 return 0.0
 
+        fixed_salary = num('fixed_salary')
+        per_day = round(fixed_salary / FIXED_DAYS_IN_MONTH, 2)
+
+        attendance_equiv = float(payload.get('attendance_equiv') or 0)
+        absent_days = float(payload.get('absent_days') or 0)
+
+        prorated_salary = round(per_day * attendance_equiv, 2)
+        salary_deduction = round(per_day * absent_days, 2)
+
+        incentive_amt = num('incentive_amt')
+        pension_add = num('pension_add')
+        pension_ded = num('pension_ded')
+        food_charges = num('food_charges')
+        tds_amt = num('tds_amt')
+
+        gross = round(
+            prorated_salary
+            + incentive_amt
+            + pension_add
+            - pension_ded
+            - food_charges
+            - tds_amt,
+            2
+        )
+
+        # ---------- Final document ----------
         salary_doc = {
             "teacher_id": stored_teacher_id,
             "teacher_name": teacher_name,
+
             "year": year,
             "month": month,
             "month_str": f"{year}-{month:02d}",
+
             "mode": "days",
-            "total_collection": num('total_collection'),
-            "fixed_salary": num('fixed_salary'),
-            "days_in_month": int(payload.get('days_in_month') or 0),
-            "per_day": int(payload.get('per_day') or 0),
-            "attendance_equiv": float(payload.get('attendance_equiv') or 0.0),
-            "absent_days": float(payload.get('absent_days') or 0.0),
-            "prorated_salary": float(payload.get('prorated_salary') or 0.0),
-            "salary_deduction": float(payload.get('salary_deduction') or 0.0),
-            "incentive_pct": float(payload.get('incentive_pct') or 0.0),
-            "incentive_amt": float(payload.get('incentive_amt') or 0.0),
-            "pension_add": float(payload.get('pension_add') or 0.0),
-            "pension_ded": float(payload.get('pension_ded') or 0.0),
-            "food_charges": float(payload.get('food_charges') or 0.0),
-            "tds_pct": float(payload.get('tds_pct') or 0.0),
-            "tds_amt": float(payload.get('tds_amt') or 0.0),
-            "gross": float(payload.get('gross') or 0.0),
+            "salary_rule": "fixed_30_days",
+
+            "fixed_salary": fixed_salary,
+            "days_in_month": FIXED_DAYS_IN_MONTH,
+            "per_day": per_day,
+
+            "attendance_equiv": attendance_equiv,
+            "absent_days": absent_days,
+
+            "prorated_salary": prorated_salary,
+            "salary_deduction": salary_deduction,
+
+            "incentive_pct": num('incentive_pct'),
+            "incentive_amt": incentive_amt,
+
+            "pension_add": pension_add,
+            "pension_ded": pension_ded,
+
+            "food_charges": food_charges,
+
+            "tds_pct": num('tds_pct'),
+            "tds_amt": tds_amt,
+
+            "gross": gross,
             "generated_on": datetime.utcnow(),
         }
 
-        # upsert using teacher+year+month+mode as key
-        query_key = {"teacher_id": stored_teacher_id, "year": year, "month": month, "mode": "days"}
-        try:
-            res = salaries_col.update_one(query_key, {"$set": salary_doc}, upsert=True)
-            return jsonify({"saved": True, "upserted": bool(res.upserted_id), "matched_count": res.matched_count}), 200
-        except Exception:
-            current_app.logger.exception("Failed to upsert days salary")
-            return jsonify({"error": "Failed to save salary"}), 500
+        # ---------- UPSERT ----------
+        query_key = {
+            "teacher_id": stored_teacher_id,
+            "year": year,
+            "month": month,
+            "mode": "days"
+        }
+
+        salaries_col.update_one(query_key, {"$set": salary_doc}, upsert=True)
+
+        return jsonify({
+            "saved": True,
+            "rule": "fixed_30_days",
+            "days_used": FIXED_DAYS_IN_MONTH
+        }), 200
 
     except Exception as e:
-        current_app.logger.error("Unexpected error in salary_generate_days: %s\n%s", str(e), traceback.format_exc())
-        return jsonify({"error": f"Server error: {str(e)}"}), 500
+        current_app.logger.exception("salary_generate_days error")
+        return jsonify({"error": str(e)}), 500
 
 
 # ---------- list / edit / delete routes (kept from your code) ----------
 @app.route('/salary/list')
 def salary_list():
-    db_obj = globals().get("db")
     salaries_col = pick_collection("salaries_col", fallback_name="salaries")
     if salaries_col is None:
         return "salaries collection not available", 503
 
+    # --- optional filter: hours / days ---
+    mode = request.args.get('mode')  # ?mode=hours or ?mode=days
+    query = {}
+    if mode in ("hours", "days"):
+        query["mode"] = mode
+
     try:
-        rows = list(salaries_col.find({}).sort([("year", -1), ("month", -1), ("teacher_name", 1)]))
+        rows = list(
+            salaries_col
+            .find(query)
+            .sort([("year", -1), ("month", -1), ("teacher_name", 1)])
+        )
     except Exception:
         current_app.logger.exception("Failed to load salaries")
         rows = []
 
-    # convert ObjectId to string
+    # --- convert ObjectId to string (safe for Jinja & URLs) ---
     for r in rows:
         if isinstance(r.get("teacher_id"), ObjectId):
             r["teacher_id"] = str(r["teacher_id"])
-        r["_id"] = str(r.get("_id"))
+        if "_id" in r:
+            r["_id"] = str(r["_id"])
 
-    return render_template('salary_list.html', salaries=rows)
+    return render_template("salary_list.html", salaries=rows, selected_mode=mode)
 
 
 @app.route('/salary/edit/<id>', methods=['GET', 'POST'])

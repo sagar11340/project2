@@ -1,194 +1,210 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Certificate - {{ formNo }}</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <style>
-    /* Page (A4 Landscape) */
-    @page { size: A4 landscape; margin: 0; }
-    html,body { height:100%; margin:0; padding:0; background:#fff; }
-    body { font-family: "Georgia", "Times New Roman", serif; color:#111; }
+<title>Certificate</title>
 
-    /* Outer & inner frame */
-    .page { width:297mm; height:210mm; padding:12mm; box-sizing:border-box; }
-    .outer { border:14px solid #f2d86b; height:100%; box-sizing:border-box; position:relative; }
-    .inner { position:absolute; inset:14px; border:6px solid #0e3750; box-sizing:border-box; background:linear-gradient(#ffffff,#fbfbfb); padding:18px 26px; }
+<style>
+@page { size: A4 landscape; margin: 0; }
 
-    /* Header layout */
-    .header { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; }
-    .logo { width:78px; height:78px; object-fit:contain; margin-top:6px; }
-    .photo { width:86px; height:106px; object-fit:cover; border:3px solid #f3f3f3; border-radius:3px; box-shadow:0 0 0 3px rgba(0,0,0,0.03); }
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: "Georgia", "Times New Roman", serif;
+}
 
-    /* Title block: tuned to match the photo */
-    .title-block { text-align:center; flex:1; padding-top:6px; }
+.page {
+  width: 297mm;
+  height: 210mm;
+  padding: 12mm;
+  box-sizing: border-box;
+}
 
-    /* Top red line - force single line */
-    .rm-title {
-      color:#a81f24;            /* deep red */
-      font-weight:900;
-      font-size:32px;
-      letter-spacing:0.6px;
-      text-transform:uppercase;
-      margin:0;
-      line-height:1;
-      white-space:nowrap;      /* keep it on one line */
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
+.outer {
+  border: 14px solid #f2d86b;
+  height: 100%;
+}
 
-    /* Institution name (dark green/navy) - compact two-line style */
-    .inst-title {
-      color:#0b3a36;            /* deep teal/green */
-      font-weight:900;
-      font-size:30px;
-      letter-spacing:0.8px;
-      margin:6px 0 4px;
-      line-height:1.05;
-      text-transform:uppercase;
-    }
+.inner {
+  border: 6px solid #0e3750;
+  height: 100%;
+  padding: 22px 36px;
+  box-sizing: border-box;
+}
 
-    /* Certificate label in red */
-    .cert-label {
-      color:#a81f24;
-      font-weight:800;
-      font-size:28px;
-      margin-top:2px;
-    }
+/* ---------- HEADER ---------- */
+.header {
+  display: flex;
+  align-items: flex-start;
+}
 
-    /* Body content */
-    .content { margin-top:20px; font-size:16.5px; max-width:1030px; }
-    .row { margin:12px 0; display:flex; align-items:center; gap:12px; }
-    .label { width:170px; font-weight:700; color:#0b3a36; }
-    .value { border-bottom:2px dotted #222; padding:6px 10px; min-width:240px; display:inline-block; }
-    .small { min-width:80px; }
-    .dotted-long { border-bottom:3px dotted #222; display:inline-block; padding:6px 10px; min-width:260px; }
+.logo {
+  width: 78px;
+}
 
-    .red-strong { color:#a81f24; font-weight:800; }
+.title-block {
+  flex: 1;
+  text-align: center;
+}
 
-    /* Dates and signature area */
-    .signature-row { margin-top:42px; display:flex; justify-content:space-between; align-items:flex-end; }
-    .sig-area { text-align:center; width:360px; }
-    .sig-img { width:180px; height:auto; display:block; margin:0 auto 6px; }
-    .sig-name { border-top:1px solid rgba(0,0,0,0.12); padding-top:6px; font-weight:800; letter-spacing:0.5px; }
-    .sig-sub { font-size:12.5px; color:#333; margin-top:6px; }
+.rm-title {
+  color: #a81f24;
+  font-weight: 900;
+  font-size: 36px;
+  letter-spacing: 1px;
+}
 
-    .meta-right { text-align:left; font-size:13px; color:#111; }
-    .date-line { display:inline-block; border-bottom:1px solid #111; width:160px; height:1px; margin-left:8px; }
+.inst-title {
+  color: #073b36;
+  font-weight: 900;
+  font-size: 32px;
+}
 
-    /* right vertical panel */
-    .right-vertical {
-      position:absolute; right:0; top:0; bottom:0; width:88px;
-      display:flex; flex-direction:column; justify-content:center; align-items:center;
-      border-left:1px solid rgba(0,0,0,0.05);
-      padding-left:6px;
-    }
-    .rv-main { writing-mode:vertical-rl; transform:rotate(180deg); color:#a81f24; font-weight:800; font-size:12px; letter-spacing:0.8px;}
-    .rv-sub { writing-mode:vertical-rl; transform:rotate(180deg); font-size:9.5px; color:#0b3a36; margin-top:6px; text-align:center; }
+.cert-label {
+  color: #a81f24;
+  font-weight: 800;
+  font-size: 28px;
+  margin-top: 6px;
+}
 
-    /* responsive/print */
-    @media print {
-      .rm-title { font-size:30px; }
-      .inst-title { font-size:28px; }
-      .cert-label { font-size:26px; }
-    }
+/* ---------- CONTENT ---------- */
+.content {
+  margin-top: 40px;
+  font-size: 20px;   /* 🔥 increased */
+}
 
-    /* If the top single line still overflows, slightly scale it down to fit */
-    /* This uses a CSS clamp-like approach for safety */
-    .rm-title {
-      max-width:100%;
-      display:inline-block;
-    }
-  </style>
+.row {
+  display: flex;
+  align-items: center;
+  margin: 22px 0;   /* 🔥 more vertical fill */
+}
+
+.label {
+  width: 230px;
+  font-weight: 900;
+  color: #073b36;
+}
+
+.value {
+  border-bottom: 2px dotted #000;
+  padding: 6px 10px;
+  flex: 1;
+  text-align: center;
+  font-weight: 900;
+  font-size: 22px;  /* 🔥 bigger text */
+}
+
+.age {
+  width: 120px;
+  text-align: center;
+}
+
+/* ---------- COMPLETION LINE ---------- */
+.completion {
+  margin-top: 35px;
+  text-align: center;
+  font-weight: 900;
+  font-size: 22px;
+}
+
+/* ---------- FOOTER (BOTTOM LEFT) ---------- */
+.footer {
+  position: absolute;
+  bottom: 40px;
+  left: 60px;
+  width: 60%;
+}
+
+.signature {
+  margin-bottom: 30px;
+}
+
+.sig-line {
+  width: 260px;
+  border-top: 1px solid #000;
+  margin-bottom: 6px;
+}
+
+.sig-name {
+  font-weight: 900;
+  font-size: 18px;
+}
+
+.sig-sub {
+  font-size: 14px;
+}
+
+.date {
+  margin-top: 10px;
+  font-weight: 900;
+}
+
+.date-line {
+  width: 160px;
+  border-bottom: 1px solid #000;
+  display: inline-block;
+  margin-left: 10px;
+}
+</style>
 </head>
+
 <body>
-  <div class="page">
-    <div class="outer">
-      <div class="inner">
+<div class="page">
+  <div class="outer">
+    <div class="inner">
 
-        <!-- header -->
-        <div class="header">
-          <div style="width:84px;">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" class="logo" alt="logo" onerror="this.style.display='none'">
-          </div>
-<div class="title-block">
-  <div class="rm-title">RAMAKRISHNA MISSION, NEW DELHI</div>
+      <!-- HEADER -->
+      <div class="header">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" class="logo">
+        <div class="title-block">
+          <div class="rm-title">RAMAKRISHNA MISSION, NEW DELHI</div>
+          <div class="inst-title">SWAMI RANGANATHANANDA INSTITUTE</div>
+          <div class="inst-title">OF LANGUAGES AND CULTURE</div>
+          <div class="cert-label">Certificate</div>
+        </div>
+      </div>
 
-  <div class="inst-title">SWAMI RANGANATHANANDA INSTITUTE</div>
-  <div class="inst-title">OF LANGUAGES AND CULTURE</div>
+      <!-- CONTENT -->
+      <div class="content">
+        <div class="row">
+          <div class="label">Certified that Mr./Ms</div>
+          <div class="value">{{ name }}</div>
+          <div class="label" style="width:auto;">Age</div>
+          <div class="value age">{{ age }}</div>
+        </div>
 
-  <div class="cert-label">Certificate</div>
-</div>
+        <div class="row">
+          <div class="label">Son/Daughter of</div>
+          <div class="value">{{ father }}</div>
+        </div>
 
+        <div class="completion">
+          has successfully completed {{ courseHours }} hours of  
+          <span style="text-transform:uppercase;">Basic Spoken {{ course }}</span>  
+          from our institution.
+        </div>
+      </div>
 
-          
-          <div style="width:110px; text-align:right;">
-            {% if photo %}
-              <img src="{{ url_for('uploaded_file', filename=photo) }}" class="photo" alt="photo" onerror="this.style.display='none'">
-            {% endif %}
+      <!-- FOOTER BOTTOM LEFT -->
+      <div class="footer">
+        <div class="signature">
+          <div class="sig-line"></div>
+          <div class="sig-name">SWAMI SARVALOKANANDA</div>
+          <div class="sig-sub">
+            Secretary, Ramakrishna Mission<br>New Delhi
           </div>
         </div>
 
-        <!-- body -->
-        <div class="content">
-          <div class="row">
-            <div class="label">Certified that</div>
-            <div class="value" style="min-width:520px;">{{ name or '________________________' }}</div>
+        <div class="date">
+          Date <span class="date-line"></span>
+        </div>
+      </div>
 
-            <div style="margin-left:18px; font-weight:700;">Age:</div>
-            <div class="value small">{{ age or '' }}</div>
-          </div>
-
-          <div class="row">
-            <div class="label">Son/Daughter of</div>
-            <div class="value" style="min-width:720px;">{{ father or '________________________' }}</div>
-          </div>
-
-          <div class="row" style="align-items:flex-start;">
-            <div class="label">has successfully completed</div>
-            <div style="flex:1;">
-              <span class="red-strong">{{ courseHours or '--' }} hours of Basic Spoken <span style="text-transform:uppercase">{{ course or 'Course' }}</span></span>
-              &nbsp;&nbsp;from&nbsp;&nbsp;
-              <span class="dotted-long"></span>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="label">for the course:</div>
-            <div class="value" style="min-width:520px;">{{ course or '________________' }}</div>
-          </div>
-
-          <div class="row">
-            <div class="label">From:</div>
-            <div style="min-width:160px; border-bottom:1px dotted #222; padding:6px;">{{ admission or '' }}</div>
-
-            <div style="margin-left:20px; font-weight:700;">To:</div>
-            <div style="min-width:220px; border-bottom:1px dotted #222; padding:6px;">{{ completion or '' }}</div>
-          </div>
-
-          <!-- signature & meta -->
-          <div class="signature-row">
-            <div class="sig-area">
-              {% if (url_for('static', filename='images/signature.png')) %}
-                <img src="{{ url_for('static', filename='images/signature.png') }}" class="sig-img" alt="signature" onerror="this.style.display='none'">
-              {% endif %}
-              <div class="sig-name">SWAMI SARVALOKANANDA</div>
-              <div class="sig-sub">Secretary, Ramakrishna Mission<br>New Delhi</div>
-            </div>
-
-            <div style="width:320px; text-align:left;">
-              <div style="margin-bottom:8px;">Date: <span class="date-line"></span></div>
-              <div class="meta-right">Form No: <strong>{{ formNo or '' }}</strong></div>
-            </div>
-          </div>
-
-        </div> <!-- content -->
-
-        
-
-      </div> <!-- inner -->
-    </div> <!-- outer -->
-  </div> <!-- page -->
+    </div>
+  </div>
+</div>
 </body>
 </html>

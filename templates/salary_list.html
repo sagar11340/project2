@@ -3,43 +3,84 @@
 
 <h3 class="my-3">Saved Salaries</h3>
 
+<!-- 🔹 Mode Filter -->
+<div class="mb-3 d-flex align-items-center gap-2">
+  <label class="fw-semibold">Filter:</label>
+  <select class="form-select form-select-sm w-auto"
+          onchange="location='?mode=' + this.value">
+    <option value="" {{ '' == selected_mode and 'selected' or '' }}>All</option>
+    <option value="hours" {{ selected_mode == 'hours' and 'selected' or '' }}>Hours</option>
+    <option value="days" {{ selected_mode == 'days' and 'selected' or '' }}>Days</option>
+  </select>
+</div>
+
 <table class="table table-bordered table-striped align-middle">
   <thead class="table-light">
     <tr>
       <th>Teacher</th>
       <th>Month</th>
-      <th>Hours</th>
-      <th>Rate</th>
-      <th>Amount</th>
+      <th>Mode</th>
+      <th class="text-end">Details</th>
+      <th class="text-end">Amount</th>
       <th>Saved On</th>
       <th class="text-center">Actions</th>
     </tr>
   </thead>
+
   <tbody>
     {% for s in salaries %}
       <tr>
         <td>{{ s.get('teacher_name', '') }}</td>
         <td>{{ s.get('month_str', '') }}</td>
-        <td>{{ s.get('total_hours', 0) }}</td>
 
-        {# use dict.get to avoid undefined attribute errors #}
-        <td>₹{{ '%.2f' % ( (s.get('hourly_rate', 0) | float) ) }}</td>
-        <td>₹{{ '%.2f' % ( (s.get('amount', 0) | float) ) }}</td>
+        <!-- MODE -->
+        <td>
+          {% if s.get('mode') == 'hours' %}
+            <span class="badge bg-primary">Hours</span>
+          {% else %}
+            <span class="badge bg-success">Days</span>
+          {% endif %}
+        </td>
 
-        {# generated_on may be datetime or string; coerce to string to be safe #}
+        <!-- DETAILS -->
+        <td class="text-end">
+          {% if s.get('mode') == 'hours' %}
+            {{ s.get('total_hours', 0) }} hrs × ₹{{ '%.2f' % (s.get('hourly_rate', 0)|float) }}
+          {% else %}
+            {{ s.get('attendance_equiv', 0) }} / {{ s.get('days_in_month', 30) }} days
+          {% endif %}
+        </td>
+
+        <!-- AMOUNT -->
+        <td class="text-end">
+          {% if s.get('mode') == 'hours' %}
+            ₹{{ '%.2f' % (s.get('amount', 0)|float) }}
+          {% else %}
+            <strong>₹{{ '%.2f' % (s.get('gross', 0)|float) }}</strong>
+          {% endif %}
+        </td>
+
         <td>{{ s.get('generated_on') | string }}</td>
 
         <td class="text-center">
-          <a href="{{ url_for('salary_edit', id=s.get('_id')) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+          <a href="{{ url_for('salary_edit', id=s.get('_id')) }}"
+             class="btn btn-sm btn-outline-primary">Edit</a>
 
-          <form method="post" action="{{ url_for('salary_delete', id=s.get('_id')) }}" style="display:inline;" onsubmit="return confirmDelete(this);">
-            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+          <form method="post"
+                action="{{ url_for('salary_delete', id=s.get('_id')) }}"
+                style="display:inline;"
+                onsubmit="return confirmDelete(this);">
+            <button type="submit" class="btn btn-sm btn-outline-danger">
+              Delete
+            </button>
           </form>
         </td>
       </tr>
     {% else %}
       <tr>
-        <td colspan="7" class="text-center text-muted">No salary records found.</td>
+        <td colspan="7" class="text-center text-muted">
+          No salary records found.
+        </td>
       </tr>
     {% endfor %}
   </tbody>
