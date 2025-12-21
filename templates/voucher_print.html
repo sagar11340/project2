@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Voucher Print</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body{
+      font-family: Arial, Helvetica, sans-serif;
+      margin: 20px;
+      color: #000;
+    }
+    .voucher{
+      max-width: 800px;
+      margin: auto;
+      border: 1px solid #000;
+      padding: 16px;
+    }
+    h2{
+      text-align: center;
+      margin: 0 0 10px 0;
+    }
+    .row{
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    table{
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 14px;
+    }
+    th, td{
+      border: 1px solid #000;
+      padding: 6px;
+      text-align: left;
+    }
+    th{
+      background: #f2f2f2;
+    }
+    .right{
+      text-align: right;
+    }
+    .footer{
+      margin-top: 30px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+    }
+    @media print{
+      button{ display:none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="voucher">
+  <h2>VOUCHER</h2>
+
+  <div class="row">
+    <div><strong>Date:</strong> {{ v.date }}</div>
+    <div><strong>Voucher No:</strong> {{ v.no }}</div>
+  </div>
+
+  <div class="row">
+    <div><strong>Type:</strong> {{ v.type|capitalize }}</div>
+    <div></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Account</th>
+        <th>Details</th>
+        <th>Dr Amount</th>
+        <th>Cr Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for l in v.lines %}
+      <tr>
+        <td>{{ l.account }}</td>
+        <td>{{ l.details }}</td>
+        <td class="right">
+          {% if l.type == 'debit' %}
+            {{ "%.2f"|format(l.amount) }}
+          {% endif %}
+        </td>
+        <td class="right">
+          {% if l.type == 'credit' %}
+            {{ "%.2f"|format(l.amount) }}
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="row" style="margin-top:10px;">
+    <div><strong>Narration:</strong> {{ v.narration }}</div>
+  </div>
+
+  <div class="footer">
+    <div>Prepared By</div>
+    <div>Authorised Signatory</div>
+  </div>
+</div>
+
+<script>
+  // auto print
+  window.onload = function(){
+    window.print();
+  };
+</script>
+
+</body>
+</html>

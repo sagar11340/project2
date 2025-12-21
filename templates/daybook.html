@@ -275,6 +275,7 @@
 <script>
 (async function(){
   // --- keep your original JS code unchanged (I pasted it as-is) ---
+  let editingVoucherId = null;
   const vDate = document.getElementById('vDate');
   const vType = document.getElementById('vType');
   const vNo = document.getElementById('vNo');
@@ -470,6 +471,12 @@
       renderTable();
     }catch(e){ console.warn('loadVouchers failed', e); }
   }
+  // 🔹 Export CSV
+document
+  .getElementById('exportDaybook')
+  .addEventListener('click', ()=>{
+    window.location.href = '/api/vouchers/export';
+  });
 
   async function saveVoucher(){
     const date = vDate.value; const type = vType.value; const no = vNo.value || ''; const narration = vNarration.value.trim();
@@ -535,7 +542,31 @@
     }
     sumDebit.textContent = fmt(sumDr); sumCredit.textContent = fmt(sumCr);
     voucherBody.querySelectorAll('.btn-del').forEach(b=> b.addEventListener('click', ()=> deleteVoucher(b.dataset.id)));
-    voucherBody.querySelectorAll('.btn-edit').forEach(b=> b.addEventListener('click', async ()=>{ /* edit flow preserved */ }));
+    
+
+  voucherBody.querySelectorAll('.btn-edit').forEach(b =>
+  b.addEventListener('click', async ()=> {
+    const id = b.dataset.id;
+    const v = vouchers.find(x => x._id === id);
+    if(!v) return alert("Voucher not found");
+
+    // mark edit mode
+    editingVoucherId = id;
+
+    // fill form
+    vDate.value = v.date;
+    vType.value = v.type;
+    vNo.value = v.no || '';
+    vNarration.value = v.narration || '';
+
+    linesEl.innerHTML = '';
+    (v.lines || []).forEach(l => makeLine(l));
+
+    alert("Edit mode ON. Click Save to update.");
+  })
+);
+
+      
   }
 
   async function deleteVoucher(id){
@@ -550,6 +581,65 @@
   await loadLedgers();
   await loadVouchers();
   ensureDefaultLines();
+
+
+async function saveVoucher(){
+  const date = vDate.value;
+  const type = vType.value;
+  const no = vNo.value || '';
+  const narration = vNarration.value.trim();
+
+  const lines = collectLines();
+  if(!date || lines.length === 0){
+    return alert('Enter date and at least one ledger line with positive amount');
+  }
+
+  const dr = lines.filter(l=> l.type==='debit')
+                  .reduce((s,i)=> s + Number(i.amount||0), 0);
+  const cr = lines.filter(l=> l.type==='credit')
+                  .reduce((s,i)=> s + Number(i.amount||0), 0);
+
+  if(Math.abs(dr - cr) > 0.009){
+    return alert(
+      'Voucher not balanced: Debit ('+fmt(dr)+') != Credit ('+fmt(cr)+').'
+    );
+  }
+
+  const payload = { date, type, no, narration, lines };
+
+  try{
+    let resp;
+
+    if (editingVoucherId) {
+      // 🔁 UPDATE
+      resp = await apiPut(
+        '/api/vouchers/' + encodeURIComponent(editingVoucherId),
+        payload
+      );
+    } else {
+      // ➕ CREATE
+      resp = await apiPost('/api/vouchers', payload);
+    }
+
+    if (resp.ok) {
+      await loadVouchers();
+      vNarration.value='';
+      vNo.value='';
+      linesEl.innerHTML='';
+      ensureDefaultLines();
+
+      editingVoucherId = null; // reset edit mode
+      alert('Voucher saved');
+    } else {
+      const err = await resp.json().catch(()=>({error:'server error'}));
+      alert('Save failed: ' + (err.error || JSON.stringify(err)));
+    }
+  } catch(e){
+    alert('Save error: ' + e.message);
+  }
+}
+
+
 
   [fFrom,fTo,fSearch].forEach(el=> el.addEventListener('input', loadVouchers));
   window.addEventListener('keydown', (e)=>{
